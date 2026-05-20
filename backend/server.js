@@ -13,6 +13,7 @@ app.use(cors());
 app.use(express.json());
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/restaurants', require('./routes/restaurants'));
+app.use('/api/reviews', require('./routes/reviews'));
 //app.use('/api/tasks', require('./routes/taskRoutes'));
 
 // Export the app object for testing

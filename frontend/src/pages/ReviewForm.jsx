@@ -1,11 +1,16 @@
-// Screen 3 - Review Form. Authenticated diner submits a rating + text for a restaurant.
-// Wires to POST /api/restaurants/:id/reviews via axiosInstance (bearer token attached
-// automatically by the request interceptor in axiosConfig.js).
+// Screen 3 - Review Form. Handles BOTH create (POST) and edit (PATCH) modes.
 //
-// Maps to SysML R012 (Create Review), R013 (Submit Review).
+// Create mode (default):  /restaurants/:slug/review
+//   POST /api/restaurants/:id/reviews with { rating, text }
+//
+// Edit mode:              /restaurants/:slug/review?edit=<reviewId>
+//   GET  /api/reviews/me to find the existing review, pre-populate form
+//   PATCH /api/reviews/:id with { rating, text }
+//
+// Maps to SysML R012 (Create Review), R013 (Submit Review), R014 (Edit Review).
 
 import { useEffect, useState } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom';
 import axiosInstance from '../axiosConfig';
 import { useAuth } from '../context/AuthContext';
 import Navbar from '../components/mesa/Navbar';
@@ -16,6 +21,9 @@ export default function ReviewForm() {
   const { slug } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const [params] = useSearchParams();
+  const editId = params.get('edit'); // undefined for create mode
+  const isEditMode = !!editId;
 
   const [restaurant, setRestaurant] = useState(null);
   const [rating, setRating] = useState(0);
@@ -30,11 +38,27 @@ export default function ReviewForm() {
       try {
         setLoading(true);
         setError(null);
-        const res = await axiosInstance.get(`/api/restaurants/${slug}`);
-        if (!cancelled) setRestaurant(res.data);
+
+        // Always need the restaurant for context (title, _id for create POST).
+        const restRes = await axiosInstance.get(`/api/restaurants/${slug}`);
+        if (cancelled) return;
+        setRestaurant(restRes.data);
+
+        // Edit mode: also fetch the user's reviews and find the one being edited.
+        if (isEditMode) {
+          const reviewsRes = await axiosInstance.get('/api/reviews/me');
+          if (cancelled) return;
+          const existing = (reviewsRes.data || []).find((r) => r._id === editId);
+          if (existing) {
+            setRating(existing.rating);
+            setText(existing.text);
+          } else {
+            setError('Could not find that review. It may have been deleted.');
+          }
+        }
       } catch (err) {
         if (!cancelled) {
-          setError(err.response?.data?.message || err.message || 'Restaurant not found');
+          setError(err.response?.data?.message || err.message || 'Failed to load');
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -42,7 +66,7 @@ export default function ReviewForm() {
     }
     load();
     return () => { cancelled = true; };
-  }, [slug]);
+  }, [slug, editId, isEditMode]);
 
   async function handleSubmit(event) {
     event.preventDefault();
@@ -59,14 +83,22 @@ export default function ReviewForm() {
       setSubmitting(true);
       setError(null);
 
-      await axiosInstance.post(
-        `/api/restaurants/${restaurant._id}/reviews`,
-        { rating, text: text.trim() }
-      );
+      if (isEditMode) {
+        await axiosInstance.patch(`/api/reviews/${editId}`, {
+          rating,
+          text: text.trim(),
+        });
+      } else {
+        await axiosInstance.post(
+          `/api/restaurants/${restaurant._id}/reviews`,
+          { rating, text: text.trim() }
+        );
+      }
 
+      // Both paths redirect to the detail page where changes are visible.
       navigate(`/restaurants/${slug}`);
     } catch (err) {
-      setError(err.response?.data?.message || err.message || 'Failed to submit review');
+      setError(err.response?.data?.message || err.message || 'Failed to save review');
       setSubmitting(false);
     }
   }
@@ -98,18 +130,20 @@ export default function ReviewForm() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <Navbar activeLink="browse" />
+      <Navbar activeLink={isEditMode ? 'my-reviews' : 'browse'} />
 
       <main className="flex-1 max-w-2xl mx-auto w-full px-6 py-8">
         <Link
-          to={`/restaurants/${slug}`}
+          to={isEditMode ? '/my-reviews' : `/restaurants/${slug}`}
           className="inline-block text-muted-foreground hover:text-primary mb-4 text-sm"
         >
-          &larr; Back to {restaurant.name}
+          &larr; {isEditMode ? 'Back to My Reviews' : `Back to ${restaurant.name}`}
         </Link>
 
         <div className="bg-card border border-border rounded-lg p-6">
-          <h1 className="text-3xl font-bold text-foreground mb-1">Write a Review</h1>
+          <h1 className="text-3xl font-bold text-foreground mb-1">
+            {isEditMode ? 'Edit Review' : 'Write a Review'}
+          </h1>
           <p className="text-muted-foreground mb-2">
             for {restaurant.name} &middot; {restaurant.cuisine}
           </p>
@@ -165,10 +199,12 @@ export default function ReviewForm() {
                 disabled={submitting}
                 className="px-5 py-2 bg-primary text-primary-foreground rounded-md font-semibold hover:opacity-90 transition disabled:opacity-50"
               >
-                {submitting ? 'Submitting...' : 'Submit Review'}
+                {submitting
+                  ? (isEditMode ? 'Saving...' : 'Submitting...')
+                  : (isEditMode ? 'Save Changes' : 'Submit Review')}
               </button>
               <Link
-                to={`/restaurants/${slug}`}
+                to={isEditMode ? '/my-reviews' : `/restaurants/${slug}`}
                 className="px-5 py-2 border border-border text-foreground rounded-md hover:bg-muted transition"
               >
                 Cancel

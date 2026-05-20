@@ -1,3 +1,58 @@
+/* frontend/src/index.css
+ * Mesa. design tokens — ported from the Next.js prototype to plain React + Tailwind.
+ * Drop this content into the starter's root CSS file (typically src/index.css or src/App.css).
+ * Tailwind directives at top must come first if Tailwind is used.
+ */
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Mesa. design tokens — HSL values, consumed by tailwind.config.js via hsl(var(--token)) */
+:root {
+  /* Page surfaces */
+  --background: 39 36% 89%;          /* #EFE7D6 warm cream */
+  --foreground: 27 25% 9%;           /* #1F1A12 ink */
+
+  --card: 42 60% 96%;                /* #FBF7EE soft warm off-white */
+  --card-foreground: 27 25% 9%;
+
+  --popover: 42 60% 96%;
+  --popover-foreground: 27 25% 9%;
+
+  /* Olive primary */
+  --primary: 96 24% 30%;             /* #4A5D3A olive */
+  --primary-foreground: 0 0% 100%;
+
+  /* Secondary (transparent / ghost) */
+  --secondary: 39 36% 89%;
+  --secondary-foreground: 27 25% 9%;
+
+  --muted: 41 36% 82%;               /* #E5D9BD */
+  --muted-foreground: 34 21% 26%;
+
+  --accent: 96 24% 30%;
+  --accent-foreground: 0 0% 100%;
+
+  --destructive: 10 50% 36%;         /* #8B3A2E muted brick */
+  --destructive-foreground: 0 0% 100%;
+
+  --border: 41 28% 70%;
+  --input: 0 0% 100%;
+  --ring: 96 24% 30%;
+
+  --stars: 43 87% 38%;               /* #B8860B amber — rating stars only */
+
+  --radius: 0.5rem;
+}
+
+body {
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Fraunces', Georgia, serif;
+}

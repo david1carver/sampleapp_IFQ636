@@ -1,5 +1,5 @@
-// frontend/src/pages/Browse.jsx
-// Screen 1 — Browse / Landing. Diner-facing restaurant grid with search + cuisine filter + pagination.
+﻿// frontend/src/pages/Browse.jsx
+// Screen 1 â€” Browse / Landing. Diner-facing restaurant grid with search + cuisine filter + pagination.
 // Wires to GET /api/restaurants on the backend.
 //
 // Maps to SysML R007 (Browse Restaurants), R008 (View Restaurant List), R009 (Search Restaurants).
@@ -134,7 +134,7 @@ export default function Browse() {
           {restaurants.map((r) => (
             <Link
               key={r._id}
-              to={`/restaurant/${r.slug}`}
+              to={`/restaurants/${r.slug}`}
               className="bg-card border border-border rounded-lg overflow-hidden hover:shadow-md transition-shadow"
             >
               <div className="aspect-[4/3] bg-muted overflow-hidden">
@@ -213,3 +213,4 @@ export default function Browse() {
     </div>
   );
 }
+

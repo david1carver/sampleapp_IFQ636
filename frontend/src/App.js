@@ -5,6 +5,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Browse from './pages/Browse';
 import Detail from './pages/Detail';
+import ReviewForm from './pages/ReviewForm';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Profile from './pages/Profile';
@@ -16,6 +17,7 @@ function App() {
         {/* Public diner-facing routes */}
         <Route path="/" element={<Browse />} />
         <Route path="/restaurants/:slug" element={<Detail />} />
+        <Route path="/restaurants/:slug/review" element={<ReviewForm />} />
 
         {/* Auth routes (starter pages, will be restyled on Day 3) */}
         <Route path="/login" element={<Login />} />
@@ -24,7 +26,6 @@ function App() {
 
         {/* Placeholder routes - pages added on Day 3 */}
         <Route path="/my-reviews" element={<Navigate to="/login" replace />} />
-        <Route path="/restaurants/:slug/review" element={<Navigate to="/login" replace />} />
 
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />

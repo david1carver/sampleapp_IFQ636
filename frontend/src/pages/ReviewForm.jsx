@@ -1,36 +1,21 @@
-// frontend/src/pages/ReviewForm.jsx
 // Screen 3 - Review Form. Authenticated diner submits a rating + text for a restaurant.
-// Wires to POST /api/restaurants/:id/reviews with a JWT bearer token.
-//
-// TEMPORARY AUTH NOTE: this branch logs in as diner@mesa.test on submit so the diner
-// happy path works end-to-end before the proper Login UI ships in feature/frontend-login.
-// When that lands, replace loginAsTestDiner() with the token from useAuth().
+// Wires to POST /api/restaurants/:id/reviews via axiosInstance (bearer token attached
+// automatically by the request interceptor in axiosConfig.js).
 //
 // Maps to SysML R012 (Create Review), R013 (Submit Review).
 
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import axios from 'axios';
+import axiosInstance from '../axiosConfig';
+import { useAuth } from '../context/AuthContext';
 import Navbar from '../components/mesa/Navbar';
 import Footer from '../components/mesa/Footer';
 import StarRating from '../components/mesa/StarRating';
 
-const API_BASE = process.env.REACT_APP_API_URL || '';
-
-// TEMPORARY: replaces proper auth flow until feature/frontend-login lands.
-async function loginAsTestDiner() {
-  // eslint-disable-next-line no-console
-  console.warn('[ReviewForm] Using temporary test-diner login. Replace with useAuth() once Login UI ships.');
-  const res = await axios.post(`${API_BASE}/api/auth/login`, {
-    email: 'diner@mesa.test',
-    password: 'diner1234',
-  });
-  return res.data.token;
-}
-
 export default function ReviewForm() {
   const { slug } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const [restaurant, setRestaurant] = useState(null);
   const [rating, setRating] = useState(0);
@@ -39,14 +24,13 @@ export default function ReviewForm() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
 
-  // Fetch restaurant on mount so we can show context + get _id for POST.
   useEffect(() => {
     let cancelled = false;
     async function load() {
       try {
         setLoading(true);
         setError(null);
-        const res = await axios.get(`${API_BASE}/api/restaurants/${slug}`);
+        const res = await axiosInstance.get(`/api/restaurants/${slug}`);
         if (!cancelled) setRestaurant(res.data);
       } catch (err) {
         if (!cancelled) {
@@ -75,15 +59,11 @@ export default function ReviewForm() {
       setSubmitting(true);
       setError(null);
 
-      const token = await loginAsTestDiner();
-
-      await axios.post(
-        `${API_BASE}/api/restaurants/${restaurant._id}/reviews`,
-        { rating, text: text.trim() },
-        { headers: { Authorization: `Bearer ${token}` } }
+      await axiosInstance.post(
+        `/api/restaurants/${restaurant._id}/reviews`,
+        { rating, text: text.trim() }
       );
 
-      // Success - return to detail page where the new review now appears.
       navigate(`/restaurants/${slug}`);
     } catch (err) {
       setError(err.response?.data?.message || err.message || 'Failed to submit review');
@@ -130,9 +110,14 @@ export default function ReviewForm() {
 
         <div className="bg-card border border-border rounded-lg p-6">
           <h1 className="text-3xl font-bold text-foreground mb-1">Write a Review</h1>
-          <p className="text-muted-foreground mb-6">
+          <p className="text-muted-foreground mb-2">
             for {restaurant.name} &middot; {restaurant.cuisine}
           </p>
+          {user && (
+            <p className="text-sm text-muted-foreground mb-6">
+              Posting as <span className="font-semibold text-foreground">{user.name}</span>
+            </p>
+          )}
 
           {error && (
             <div className="bg-destructive/10 border border-destructive text-destructive rounded-md p-3 mb-4">

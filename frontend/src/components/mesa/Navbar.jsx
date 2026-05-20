@@ -1,8 +1,13 @@
-// frontend/src/components/mesa/Navbar.jsx
-// Ported from mesa-app/components/mesa/navbar.tsx
+// Mesa diner-facing top navigation. Reads auth state from AuthContext to show:
+//   - Browse always
+//   - My Reviews only when logged in
+//   - "Hi {name}" + Logout button when logged in
+//   - Login link when logged out
+// Click Logout -> clears auth, redirects to /.
 
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import Logo from './Logo';
 
 function cn(...c) {
@@ -11,6 +16,8 @@ function cn(...c) {
 
 export default function Navbar({ activeLink, showOwnerBadge = false }) {
   const [hasScrolled, setHasScrolled] = useState(false);
+  const { user, isAuthenticated, isAdmin, logout } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const handleScroll = () => setHasScrolled(window.scrollY > 10);
@@ -18,11 +25,19 @@ export default function Navbar({ activeLink, showOwnerBadge = false }) {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const links = [
-    { to: '/', label: 'Browse', key: 'browse' },
-    { to: '/my-reviews', label: 'My Reviews', key: 'my-reviews' },
-    { to: '/login', label: 'Login', key: 'login' },
-  ];
+  function handleLogout() {
+    logout();
+    navigate('/', { replace: true });
+  }
+
+  // Build links list based on auth state.
+  const links = [{ to: '/', label: 'Browse', key: 'browse' }];
+  if (isAuthenticated) {
+    links.push({ to: '/my-reviews', label: 'My Reviews', key: 'my-reviews' });
+  }
+  if (isAdmin) {
+    links.push({ to: '/admin/restaurants', label: 'Admin', key: 'admin' });
+  }
 
   return (
     <nav
@@ -36,7 +51,7 @@ export default function Navbar({ activeLink, showOwnerBadge = false }) {
           <Logo />
         </div>
 
-        <div className="flex items-center gap-10">
+        <div className="flex items-center gap-8">
           {links.map((link) => (
             <Link
               key={link.key}
@@ -54,14 +69,42 @@ export default function Navbar({ activeLink, showOwnerBadge = false }) {
               )}
             </Link>
           ))}
+
+          {isAuthenticated ? (
+            <div className="flex items-center gap-3 pl-4 border-l border-border">
+              <span className="text-sm text-muted-foreground">
+                Hi, <span className="font-semibold text-foreground">{user.name}</span>
+              </span>
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="text-[15px] font-medium text-foreground hover:text-primary transition-colors"
+              >
+                Logout
+              </button>
+            </div>
+          ) : (
+            <Link
+              to="/login"
+              className={cn(
+                'text-[15px] font-medium transition-colors relative py-1',
+                activeLink === 'login'
+                  ? 'text-primary'
+                  : 'text-foreground hover:text-primary'
+              )}
+            >
+              Login
+              {activeLink === 'login' && (
+                <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
+              )}
+            </Link>
+          )}
+
           {showOwnerBadge && (
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 pl-4 border-l border-border">
               <span className="px-2 py-1 bg-primary text-primary-foreground text-xs font-medium rounded">
                 Owner view
               </span>
-              <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
-                <span className="text-sm font-medium">CM</span>
-              </div>
             </div>
           )}
         </div>

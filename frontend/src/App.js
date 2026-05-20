@@ -1,19 +1,31 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import Navbar from './components/Navbar';
+// frontend/src/App.js
+// React Router entry point for the Restaurant Review Platform.
+// Each page renders its own Mesa Navbar + Footer, so App.js only handles routing.
+
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import Browse from './pages/Browse';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Profile from './pages/Profile';
-import Tasks from './pages/Tasks';
 
 function App() {
   return (
     <Router>
-      <Navbar />
       <Routes>
+        {/* Public diner-facing routes */}
+        <Route path="/" element={<Browse />} />
+
+        {/* Auth routes (starter pages, will be restyled on Day 3) */}
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/profile" element={<Profile />} />
-        <Route path="/tasks" element={<Tasks />} />
+
+        {/* Placeholder routes — pages added on Day 3 */}
+        <Route path="/my-reviews" element={<Navigate to="/login" replace />} />
+        <Route path="/restaurants/:slug" element={<Navigate to="/" replace />} />
+
+        {/* Fallback */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>
   );

@@ -13,6 +13,7 @@ const adminGuard = require('../middleware/adminGuard');
 // Diner dashboard — own reviews
 // Mount this as a separate router OR add the prefix '/me' here.
 router.get('/me', requireAuth, ctrl.listMyReviews);
+router.get('/', requireAuth, adminGuard, ctrl.listAllReviews);
 
 // Author edits / deletes; admin can also delete
 router.patch('/:id', requireAuth, ctrl.updateReview);

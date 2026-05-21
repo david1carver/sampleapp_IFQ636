@@ -16,6 +16,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Profile from './pages/Profile';
 import AdminRestaurants from './pages/admin/AdminRestaurants';
+import AdminModeration from './pages/admin/AdminModeration';
 
 function App() {
   return (
@@ -61,6 +62,14 @@ function App() {
           element={
             <ProtectedRoute requireAdmin>
               <AdminRestaurants />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/reviews"
+          element={
+            <ProtectedRoute requireAdmin>
+              <AdminModeration />
             </ProtectedRoute>
           }
         />

@@ -145,3 +145,34 @@ exports.respondToReview = async (req, res) => {
     res.status(500).json({ message: 'Failed to post response', error: err.message });
   }
 };
+
+// GET /api/reviews
+// Admin only. Returns ALL reviews across all restaurants, paginated, with
+// restaurant info and author info populated for the moderation table.
+exports.listAllReviews = async (req, res) => {
+  try {
+    const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
+    const limit = Math.min(parseInt(req.query.limit, 10) || 50, 100);
+    const skip = (page - 1) * limit;
+
+    const [items, total] = await Promise.all([
+      Review.find({})
+        .populate('restaurantId', 'name slug')
+        .populate('userId', 'name email')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit),
+      Review.countDocuments({}),
+    ]);
+
+    res.json({
+      items,
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit) || 1,
+    });
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to list reviews', error: err.message });
+  }
+};

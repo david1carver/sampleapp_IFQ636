@@ -1,8 +1,10 @@
-// frontend/src/components/mesa/AdminNavbar.jsx
-// Ported from mesa-app/components/mesa/admin-navbar.tsx
+// Admin top navigation. Reads auth state from AuthContext and triggers logout()
+// on click rather than navigating to a non-existent /logout route. The Users link
+// is wired to the route but no Users page exists yet (out of scope for A1).
 
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import Logo from './Logo';
 
 function cn(...c) {
@@ -11,6 +13,8 @@ function cn(...c) {
 
 export default function AdminNavbar({ activeLink }) {
   const [hasScrolled, setHasScrolled] = useState(false);
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const handleScroll = () => setHasScrolled(window.scrollY > 10);
@@ -18,11 +22,14 @@ export default function AdminNavbar({ activeLink }) {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  function handleLogout() {
+    logout();
+    navigate('/', { replace: true });
+  }
+
   const links = [
     { to: '/admin/restaurants', label: 'Restaurants', key: 'restaurants' },
     { to: '/admin/reviews', label: 'Reviews', key: 'reviews' },
-    { to: '/admin/users', label: 'Users', key: 'users' },
-    { to: '/logout', label: 'Logout', key: 'logout' },
   ];
 
   return (
@@ -40,7 +47,7 @@ export default function AdminNavbar({ activeLink }) {
           </span>
         </div>
 
-        <div className="flex items-center gap-10">
+        <div className="flex items-center gap-8">
           {links.map((link) => (
             <Link
               key={link.key}
@@ -58,6 +65,28 @@ export default function AdminNavbar({ activeLink }) {
               )}
             </Link>
           ))}
+
+          <Link
+            to="/"
+            className="text-[15px] font-medium text-foreground hover:text-primary transition"
+          >
+            View site
+          </Link>
+
+          {user && (
+            <div className="flex items-center gap-3 pl-4 border-l border-border">
+              <span className="text-sm text-muted-foreground">
+                <span className="font-semibold text-foreground">{user.name}</span>
+              </span>
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="text-[15px] font-medium text-foreground hover:text-primary transition"
+              >
+                Logout
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </nav>

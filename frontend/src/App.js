@@ -1,8 +1,10 @@
+// frontend/src/App.js
 // React Router entry point for the Restaurant Review Platform.
 // AuthProvider is mounted one level up in index.js (wraps the whole app), so
 // any component in the route tree can call useAuth() to read user + JWT state.
-// /restaurants/:slug/review, /my-reviews and /profile are gated by ProtectedRoute -
-// unauthenticated users get bounced to /login with the original path preserved in ?next=.
+// /restaurants/:slug/review, /my-reviews, /profile and /admin/* are gated by
+// ProtectedRoute - unauthenticated users get bounced to /login with the original
+// path preserved in ?next=. Admin routes additionally require role === 'admin'.
 
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -13,6 +15,7 @@ import MyReviews from './pages/MyReviews';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Profile from './pages/Profile';
+import AdminRestaurants from './pages/admin/AdminRestaurants';
 
 function App() {
   return (
@@ -28,7 +31,6 @@ function App() {
 
         {/* Protected routes - require auth */}
         <Route
-        
           path="/restaurants/:slug/review"
           element={
             <ProtectedRoute>
@@ -49,6 +51,16 @@ function App() {
           element={
             <ProtectedRoute>
               <Profile />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Admin routes - require role === 'admin' */}
+        <Route
+          path="/admin/restaurants"
+          element={
+            <ProtectedRoute requireAdmin>
+              <AdminRestaurants />
             </ProtectedRoute>
           }
         />

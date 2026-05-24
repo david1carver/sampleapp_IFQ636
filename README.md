@@ -19,7 +19,7 @@ Built by extending the [nahaQUT starter project](https://github.com/nahaQUT/samp
 
 ## Live screens
 
-The platform ships seven working screens covering the full diner and admin journeys:
+The platform ships eight working screens covering the full diner and admin journeys:
 
 | # | Screen | Route | Access |
 |---|--------|-------|--------|
@@ -121,7 +121,7 @@ cd backend
 npm test
 ```
 
-Expected: **7 passing** (covers `GET /api/restaurants` shape and filtering, `POST /api/restaurants/:id/reviews` with 401/201/409 paths).
+Expected: 14 passing (7 mocha + chai-http integration tests, 7 sinon unit tests covering controller behaviour) - (covers `GET /api/restaurants` shape and filtering, `POST /api/restaurants/:id/reviews` with 401/201/409 paths).
 
 ---
 

@@ -14,7 +14,7 @@ Built by extending the [nahaQUT starter project](https://github.com/nahaQUT/samp
 - **React 18 + Tailwind CSS 3** frontend with the bespoke "Mesa" design system (7 colour tokens, 4 type tokens, 5 shared components)
 - **JWT authentication** with role-based authorisation (`diner` / `admin`)
 - **Compound unique index** on `(restaurantId, userId)` enforcing one review per diner per restaurant; two-layer defence (controller pre-check + database constraint)
-- **Mocha + chai-http** integration tests covering the public list endpoint and the authenticated review write path
+- **Mocha + chai-http** in-process (no HTTP socket) for fast integration tests
 - **GitHub Actions CI/CD** pipeline deploying to AWS EC2 on push to `main` (configured under `.github/workflows/deploy.yml`)
 
 ## Live screens
@@ -121,7 +121,7 @@ cd backend
 npm test
 ```
 
-Expected: 14 passing (7 mocha + chai-http integration tests, 7 sinon unit tests covering controller behaviour) - (covers `GET /api/restaurants` shape and filtering, `POST /api/restaurants/:id/reviews` with 401/201/409 paths).
+Expected: 7 passing - sinon unit tests covering controller behaviour (covers `GET /api/restaurants` shape and filtering, `POST /api/restaurants/:id/reviews` with 201/409/404 paths).
 
 ---
 
@@ -174,17 +174,17 @@ sampleapp_IFQ636/
 - **bcrypt** via Mongoose pre-save hook on the User schema
 - **React Router v6** with declarative `<ProtectedRoute>` wrapper for auth + role gating
 - **Tailwind CSS 3** with HSL CSS custom properties so the Mesa palette is theme-able from a single source
-- **Mocha + chai-http** in-process (no HTTP socket) for fast integration tests
+- **Mocha + sinon** for fast in-process unit tests of controller behaviour
 
 ## Branching strategy
 
 Every feature lives on its own `feature/*` branch and lands on `main` via a pull request with a structured What / Why / Test plan / Refs description. Merges are explicit merge commits, not fast-forwards, so the branching strategy stays legible in the commit graph. Feature branches are preserved on the remote post-merge for marker inspection.
 
 Branch naming conventions:
-- `feature/backend-*` — backend work (CRUD, models, seed)
-- `feature/frontend-*` — frontend pages and components
-- `feature/admin-*` — admin-side functionality
-- `feature/backend-mocha-tests` — automated tests
+- `feature/backend-*` - backend work (CRUD, models, seed)
+- `feature/frontend-*` - frontend pages and components
+- `feature/admin-*` - admin-side functionality
+- `feature/backend-mocha-tests` - automated tests
 
 ---
 

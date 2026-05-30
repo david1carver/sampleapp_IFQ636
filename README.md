@@ -4,7 +4,7 @@ A full-stack restaurant review platform built for **IFQ636 Assignment 1** at QUT
 
 Built by extending the [nahaQUT starter project](https://github.com/nahaQUT/sampleapp_IFQ636) (Node.js + Express + MongoDB + React + JWT authentication).
 
-**Live deployment:** see the EC2 public IP listed on the assignment cover page.
+**Live deployment:** https://sampleapp-ifq636.onrender.com — API base https://sampleapp-ifq636.onrender.com/api/restaurants. Backend deployed on Render against the MongoDB Atlas cluster.
 
 ---
 
@@ -197,4 +197,4 @@ Branch naming conventions:
 
 ## Author
 
-**Anrio Carver** — QUT student ID `n11473215` — IFQ636 Software Lifecycle Management, Semester 1 2026.
+**Anrio Carver** - QUT student ID `n11473215` — IFQ636 Software Lifecycle Management, Semester 1 2026.

@@ -15,7 +15,7 @@ Built by extending the [nahaQUT starter project](https://github.com/nahaQUT/samp
 - **JWT authentication** with role-based authorisation (`diner` / `admin`)
 - **Compound unique index** on `(restaurantId, userId)` enforcing one review per diner per restaurant; two-layer defence (controller pre-check + database constraint)
 - **Mocha + chai-http** in-process (no HTTP socket) for fast integration tests
-- **GitHub Actions CI/CD** pipeline deploying to AWS EC2 on push to `main` (configured under `.github/workflows/deploy.yml`)
+- **GitHub Actions CI** running the backend test suite (Node 20, Mocha + Sinon) on every push to `main` (configured under `.github/workflows/ci.yml`)
 
 ## Live screens
 
@@ -34,9 +34,17 @@ The platform ships eight working screens covering the full diner and admin journ
 
 ---
 
+## Deployment
+
+The application is deployed and publicly accessible on **Render** (https://sampleapp-ifq636.onrender.com), running against the same MongoDB Atlas cluster. The CI pipeline (`ci.yml`) builds and runs the unit tests on every push to `main`.
+
+An AWS EC2 deployment was the original production target and remains documented in the report (§5.1–5.5). The automated EC2 deploy job is currently blocked by the shared student AWS account (Elastic IP quota exhausted, plus SSH / Instance Connect restrictions), so production hosting is served via Render instead.
+
+---
+
 ## Prerequisites
 
-- **Node.js 18 or 20** (matches the EC2 production target and the GitHub Actions runner)
+- **Node.js 18 or 20** (matches the GitHub Actions runner; 20 is used in CI)
 - **MongoDB Atlas** account with a cluster URI, OR a local MongoDB 6 instance
 - A terminal capable of running `npm` commands
 
@@ -114,7 +122,7 @@ New diners can register fresh accounts through the in-app registration form.
 
 ## Running tests
 
-The mocha + chai-http test suite covers the highest-value backend paths:
+The mocha + sinon test suite covers the highest-value backend paths:
 
 ```bash
 cd backend
@@ -133,7 +141,7 @@ sampleapp_IFQ636/
 │   ├── middleware/                   # protect (JWT), adminGuard (role check)
 │   ├── models/                       # User, Restaurant, Review schemas
 │   ├── routes/                       # /api/auth, /api/restaurants, /api/reviews
-│   ├── test/                         # mocha integration tests
+│   ├── test/                         # mocha + sinon unit tests
 │   ├── .mocharc.json                 # mocha config
 │   ├── seed.js                       # one-shot DB seed script
 │   └── server.js                     # Express entrypoint
@@ -143,10 +151,10 @@ sampleapp_IFQ636/
 │       │   ├── mesa/                 # Mesa design-system primitives
 │       │   └── ProtectedRoute.jsx    # auth + role gating
 │       ├── context/AuthContext.jsx   # re-export shim
-│       ├── pages/                    # Browse, Detail, ReviewForm, MyReviews, etc
+│       ├── pages/                    # Browse, Detail, ReviewForm, MyReviews, admin/, etc
 │       ├── axiosConfig.js            # axios + bearer token interceptor
 │       └── index.js                  # AuthProvider + App entrypoint
-└── .github/workflows/deploy.yml      # CI/CD pipeline
+└── .github/workflows/ci.yml          # CI pipeline (runs unit tests)
 
 ## API summary
 
@@ -178,12 +186,11 @@ sampleapp_IFQ636/
 
 ## Branching strategy
 
-Every feature lives on its own `feature/*` branch and lands on `main` via a pull request with a structured What / Why / Test plan / Refs description. Merges are explicit merge commits, not fast-forwards, so the branching strategy stays legible in the commit graph. Feature branches are preserved on the remote post-merge for marker inspection.
+Every feature lives on its own `feature/*` branch and lands on `main` via a pull request with a structured What / Why / Test plan / Refs description. Feature branches are preserved on the remote post-merge for marker inspection.
 
 Branch naming conventions:
 - `feature/backend-*` - backend work (CRUD, models, seed)
 - `feature/frontend-*` - frontend pages and components
-- `feature/admin-*` - admin-side functionality
 - `feature/backend-mocha-tests` - automated tests
 
 ---
@@ -193,7 +200,7 @@ Branch naming conventions:
 - **SysML requirement diagram:** linked on the assignment cover page (29 requirements traced through the design)
 - **Figma:** linked on the assignment cover page (9 low-fi wireframes + 5 hi-fi mockups + interactive prototype)
 - **JIRA:** linked on the assignment cover page (4 epics, 13 user stories, 45 subtasks across 3 sprints)
-- **GitHub Actions:** runs `npm test` then deploys to EC2 on every push to `main`
+- **GitHub Actions:** runs the backend unit tests on every push to `main` (`ci.yml`)
 
 ## Author
 

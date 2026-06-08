@@ -11,10 +11,14 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
+
+// Health check (used by CI/CD and uptime probes)
+app.get('/api/health', (req, res) => res.json({ status: 'OK' }));
+
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/restaurants', require('./routes/restaurants'));
 app.use('/api/reviews', require('./routes/reviews'));
-//app.use('/api/tasks', require('./routes/taskRoutes'));
+app.use('/api/notifications', require('./routes/notifications'));
 
 // Export the app object for testing
 if (require.main === module) {

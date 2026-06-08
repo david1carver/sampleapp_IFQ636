@@ -8,6 +8,17 @@ HD evidence checklist: `docs/A2/HD_CHECKLIST.md`.
 - A **MongoDB** connection string — MongoDB Atlas (free M0) or local `mongodb://127.0.0.1:27017/mesa`
 - Two terminals (one for backend, one for frontend)
 
+## Option A — one command (runs backend + frontend together)
+From the **repo root**, after creating the two `.env` files (see step 1 and 2 below):
+```bash
+npm run install-all     # installs root + backend + frontend deps (first time only)
+npm run seed            # seed demo data (first time / after DB reset)
+npm run dev             # starts backend (nodemon) AND frontend (react) together
+```
+Also available from the root: `npm test` (runs the 49 backend unit tests).
+
+> Prefer to run them separately (clearer logs for the demo)? Use Options 1 and 2 below.
+
 ## 1) Backend — install, test, seed, run
 ```bash
 cd backend

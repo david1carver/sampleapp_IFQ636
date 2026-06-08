@@ -6,6 +6,8 @@ const mongoose = require('mongoose');
 
 const Restaurant = require('./models/Restaurant');
 const User = require('./models/User');
+const Notification = require('./models/Notification');
+const NotificationFactory = require('./factories/NotificationFactory');
 
 const RESTAURANTS = [
   { name: 'Saigon & Smoke',  slug: 'saigon-smoke',   cuisine: 'Vietnamese BBQ',   location: 'Sydney, NSW',     description: 'Modern Vietnamese with a wood-fire focus. Lemongrass beef short rib with nuoc cham.', imageUrl: 'https://images.unsplash.com/photo-1551183053-bf91a1d81141?auto=format&fit=crop&w=1200&q=80' },
@@ -40,7 +42,16 @@ async function main() {
   console.log(`Seeded ${RESTAURANTS.length} restaurants`);
 
   await ensureUser('admin@mesa.test', 'Mesa Admin', 'admin1234', 'admin');
-  await ensureUser('diner@mesa.test', 'Test Diner', 'diner1234', 'diner');
+  const diner = await ensureUser('diner@mesa.test', 'Test Diner', 'diner1234', 'diner');
+
+  // Seed a few in-app notifications for the diner (A2 feature demo).
+  await Notification.deleteMany({});
+  await Notification.insertMany([
+    NotificationFactory.reviewCreated(diner._id, 'Saigon & Smoke'),
+    NotificationFactory.ownerResponse(diner._id, 'Lotus Cantina'),
+    { ...NotificationFactory.system(diner._id, 'Welcome to the Restaurant Review Platform!'), read: true },
+  ]);
+  console.log('Seeded 3 notifications for diner@mesa.test');
 
   await mongoose.disconnect();
   console.log('Done.');

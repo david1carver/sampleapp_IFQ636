@@ -75,7 +75,7 @@ jobs:
           script: |
             set -e
             # --- backend (pm2: mesa-backend) ---
-            cd ~/sampleapp_IFQ636
+            cd ~/restaurant-review-platform
             git pull origin main
             cd backend
             npm ci --omit=dev

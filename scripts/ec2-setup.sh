@@ -6,7 +6,7 @@
 #
 #   chmod +x scripts/ec2-setup.sh && ./scripts/ec2-setup.sh
 #
-# Prerequisites: clone the repo to ~/sampleapp_IFQ636 and create
+# Prerequisites: clone the repo to ~/restaurant-review-platform and create
 # backend/.env (PORT=5001, MONGO_URI=..., JWT_SECRET=...) before/after running.
 set -euo pipefail
 
@@ -22,7 +22,7 @@ echo ">> Installing pm2 globally"
 sudo npm install -g pm2
 
 echo ">> Installing backend dependencies"
-cd ~/sampleapp_IFQ636/backend
+cd ~/restaurant-review-platform/backend
 npm ci --omit=dev
 
 echo ">> Starting backend under pm2 (mesa-backend on :5001)"
@@ -43,7 +43,7 @@ pm2 save
 pm2 startup systemd -u "$USER" --hp "$HOME" || true
 
 echo ">> Configuring nginx (proxies / -> :3000 frontend, /api -> :5001 backend)"
-sudo cp ~/sampleapp_IFQ636/scripts/nginx/restaurant-review.conf /etc/nginx/sites-available/restaurant-review
+sudo cp ~/restaurant-review-platform/scripts/nginx/restaurant-review.conf /etc/nginx/sites-available/restaurant-review
 sudo ln -sf /etc/nginx/sites-available/restaurant-review /etc/nginx/sites-enabled/restaurant-review
 sudo rm -f /etc/nginx/sites-enabled/default
 sudo nginx -t

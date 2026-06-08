@@ -1,0 +1,348 @@
+{
+  "info": {
+    "name": "Restaurant Review Platform — IFQ636 A2",
+    "_postman_id": "a2b1c3d4-0000-4a2a-9f00-restaurantreview",
+    "description": "API tests for the extended Restaurant Review Platform. Set the collection variable baseUrl (default http://localhost:5001). Run 'Auth > Login (diner)' and 'Auth > Login (admin)' first; their test scripts capture {{token}} and {{adminToken}} automatically. Covers happy paths AND error cases (401/403/404/409/400).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5001" },
+    { "key": "token", "value": "" },
+    { "key": "adminToken", "value": "" },
+    { "key": "restaurantId", "value": "" },
+    { "key": "restaurantSlug", "value": "saigon-smoke" },
+    { "key": "reviewId", "value": "" },
+    { "key": "notificationId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "GET /api/health",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('status OK', () => pm.expect(pm.response.json().status).to.eql('OK'));"
+                ]
+              }
+            }
+          ],
+          "request": { "method": "GET", "header": [], "url": "{{baseUrl}}/api/health" }
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "POST /api/auth/register",
+          "event": [
+            {
+              "listen": "test",
+              "script": { "type": "text/javascript", "exec": [
+                "pm.test('201 or 400 (already exists)', () => pm.expect([201,400]).to.include(pm.response.code));"
+              ] }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Postman Diner\",\n  \"email\": \"postman.diner@mesa.test\",\n  \"password\": \"diner1234\"\n}" },
+            "url": "{{baseUrl}}/api/auth/register"
+          }
+        },
+        {
+          "name": "POST /api/auth/login (diner)",
+          "event": [
+            { "listen": "test", "script": { "type": "text/javascript", "exec": [
+              "pm.test('200 OK', () => pm.response.to.have.status(200));",
+              "const t = pm.response.json().token;",
+              "pm.expect(t).to.be.a('string');",
+              "pm.collectionVariables.set('token', t);"
+            ] } }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"diner@mesa.test\",\n  \"password\": \"diner1234\"\n}" },
+            "url": "{{baseUrl}}/api/auth/login"
+          }
+        },
+        {
+          "name": "POST /api/auth/login (admin)",
+          "event": [
+            { "listen": "test", "script": { "type": "text/javascript", "exec": [
+              "pm.test('200 OK', () => pm.response.to.have.status(200));",
+              "pm.collectionVariables.set('adminToken', pm.response.json().token);"
+            ] } }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"admin@mesa.test\",\n  \"password\": \"admin1234\"\n}" },
+            "url": "{{baseUrl}}/api/auth/login"
+          }
+        },
+        {
+          "name": "POST /api/auth/login (wrong password) -> 401",
+          "event": [
+            { "listen": "test", "script": { "type": "text/javascript", "exec": [
+              "pm.test('401 Unauthorized', () => pm.response.to.have.status(401));"
+            ] } }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"diner@mesa.test\",\n  \"password\": \"wrong\"\n}" },
+            "url": "{{baseUrl}}/api/auth/login"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Restaurants",
+      "item": [
+        {
+          "name": "GET /api/restaurants (list + capture id)",
+          "event": [
+            { "listen": "test", "script": { "type": "text/javascript", "exec": [
+              "pm.test('200 OK', () => pm.response.to.have.status(200));",
+              "const b = pm.response.json();",
+              "pm.test('paginated shape', () => pm.expect(b).to.have.all.keys('items','page','limit','total','totalPages'));",
+              "if (b.items.length) { pm.collectionVariables.set('restaurantId', b.items[0]._id); pm.collectionVariables.set('restaurantSlug', b.items[0].slug); }"
+            ] } }
+          ],
+          "request": { "method": "GET", "header": [], "url": "{{baseUrl}}/api/restaurants" }
+        },
+        {
+          "name": "GET /api/restaurants?cuisine=&q=&sort=newest (filters)",
+          "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200 OK', () => pm.response.to.have.status(200));"
+          ] } } ],
+          "request": { "method": "GET", "header": [], "url": {
+            "raw": "{{baseUrl}}/api/restaurants?q=smoke&minRating=0&sort=newest&page=1&limit=12",
+            "host": ["{{baseUrl}}"], "path": ["api","restaurants"],
+            "query": [
+              {"key":"q","value":"smoke"},{"key":"minRating","value":"0"},
+              {"key":"sort","value":"newest"},{"key":"page","value":"1"},{"key":"limit","value":"12"}
+            ]
+          } }
+        },
+        {
+          "name": "GET /api/restaurants/:slug",
+          "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200 OK', () => pm.response.to.have.status(200));"
+          ] } } ],
+          "request": { "method": "GET", "header": [], "url": "{{baseUrl}}/api/restaurants/{{restaurantSlug}}" }
+        },
+        {
+          "name": "GET /api/restaurants/unknown-slug -> 404",
+          "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('404 Not Found', () => pm.response.to.have.status(404));"
+          ] } } ],
+          "request": { "method": "GET", "header": [], "url": "{{baseUrl}}/api/restaurants/this-does-not-exist" }
+        },
+        {
+          "name": "POST /api/restaurants (no token) -> 401",
+          "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('401 Unauthorized', () => pm.response.to.have.status(401));"
+          ] } } ],
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"No Auth\",\n  \"cuisine\": \"Test\",\n  \"location\": \"Nowhere\"\n}" },
+            "url": "{{baseUrl}}/api/restaurants"
+          }
+        },
+        {
+          "name": "POST /api/restaurants (diner token) -> 403",
+          "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('403 Forbidden', () => pm.response.to.have.status(403));"
+          ] } } ],
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Diner Cannot Create\",\n  \"cuisine\": \"Test\",\n  \"location\": \"Nowhere\"\n}" },
+            "url": "{{baseUrl}}/api/restaurants"
+          }
+        },
+        {
+          "name": "POST /api/restaurants (admin) -> 201",
+          "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('201 Created', () => pm.response.to.have.status(201));",
+            "pm.collectionVariables.set('restaurantId', pm.response.json()._id);"
+          ] } } ],
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{adminToken}}" } ],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Postman Test Bistro\",\n  \"cuisine\": \"Modern Australian\",\n  \"location\": \"Sydney, NSW\",\n  \"description\": \"Created from Postman.\"\n}" },
+            "url": "{{baseUrl}}/api/restaurants"
+          }
+        },
+        {
+          "name": "PATCH /api/restaurants/:id (admin) -> 200",
+          "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200 OK', () => pm.response.to.have.status(200));"
+          ] } } ],
+          "request": {
+            "method": "PATCH",
+            "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{adminToken}}" } ],
+            "body": { "mode": "raw", "raw": "{\n  \"description\": \"Updated from Postman.\"\n}" },
+            "url": "{{baseUrl}}/api/restaurants/{{restaurantId}}"
+          }
+        },
+        {
+          "name": "DELETE /api/restaurants/:id (admin) -> 200",
+          "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200 OK', () => pm.response.to.have.status(200));"
+          ] } } ],
+          "request": {
+            "method": "DELETE",
+            "header": [ { "key": "Authorization", "value": "Bearer {{adminToken}}" } ],
+            "url": "{{baseUrl}}/api/restaurants/{{restaurantId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reviews",
+      "item": [
+        {
+          "name": "POST /api/restaurants/:id/reviews (diner) -> 201",
+          "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('201 or 409 (already reviewed)', () => pm.expect([201,409]).to.include(pm.response.code));",
+            "if (pm.response.code === 201) pm.collectionVariables.set('reviewId', pm.response.json()._id);"
+          ] } } ],
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+            "body": { "mode": "raw", "raw": "{\n  \"rating\": 5,\n  \"text\": \"Outstanding meal, tested via Postman.\"\n}" },
+            "url": "{{baseUrl}}/api/restaurants/{{restaurantId}}/reviews"
+          }
+        },
+        {
+          "name": "POST duplicate review -> 409",
+          "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('409 Conflict', () => pm.response.to.have.status(409));"
+          ] } } ],
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+            "body": { "mode": "raw", "raw": "{\n  \"rating\": 3,\n  \"text\": \"Second review should be blocked.\"\n}" },
+            "url": "{{baseUrl}}/api/restaurants/{{restaurantId}}/reviews"
+          }
+        },
+        {
+          "name": "GET /api/restaurants/:id/reviews (public)",
+          "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200 OK', () => pm.response.to.have.status(200));",
+            "pm.test('array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+          ] } } ],
+          "request": { "method": "GET", "header": [], "url": "{{baseUrl}}/api/restaurants/{{restaurantId}}/reviews" }
+        },
+        {
+          "name": "GET /api/reviews/me (diner)",
+          "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200 OK', () => pm.response.to.have.status(200));"
+          ] } } ],
+          "request": { "method": "GET", "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ], "url": "{{baseUrl}}/api/reviews/me" }
+        },
+        {
+          "name": "PATCH /api/reviews/:id (author) -> 200",
+          "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200 OK', () => pm.response.to.have.status(200));"
+          ] } } ],
+          "request": {
+            "method": "PATCH",
+            "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+            "body": { "mode": "raw", "raw": "{\n  \"rating\": 4,\n  \"text\": \"Edited via Postman.\"\n}" },
+            "url": "{{baseUrl}}/api/reviews/{{reviewId}}"
+          }
+        },
+        {
+          "name": "POST /api/reviews/:id/response (admin) -> 200",
+          "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200 OK', () => pm.response.to.have.status(200));"
+          ] } } ],
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{adminToken}}" } ],
+            "body": { "mode": "raw", "raw": "{\n  \"response\": \"Thank you for the feedback!\"\n}" },
+            "url": "{{baseUrl}}/api/reviews/{{reviewId}}/response"
+          }
+        },
+        {
+          "name": "GET /api/reviews (admin moderation)",
+          "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200 OK', () => pm.response.to.have.status(200));"
+          ] } } ],
+          "request": { "method": "GET", "header": [ { "key": "Authorization", "value": "Bearer {{adminToken}}" } ], "url": "{{baseUrl}}/api/reviews" }
+        },
+        {
+          "name": "DELETE /api/reviews/:id (author) -> 200",
+          "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200 OK', () => pm.response.to.have.status(200));"
+          ] } } ],
+          "request": { "method": "DELETE", "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ], "url": "{{baseUrl}}/api/reviews/{{reviewId}}" }
+        }
+      ]
+    },
+    {
+      "name": "Notifications",
+      "item": [
+        {
+          "name": "POST /api/notifications -> 201",
+          "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('201 Created', () => pm.response.to.have.status(201));",
+            "pm.collectionVariables.set('notificationId', pm.response.json()._id);"
+          ] } } ],
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+            "body": { "mode": "raw", "raw": "{\n  \"message\": \"Test notification from Postman.\"\n}" },
+            "url": "{{baseUrl}}/api/notifications"
+          }
+        },
+        {
+          "name": "POST /api/notifications (no message) -> 400",
+          "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('400 Bad Request', () => pm.response.to.have.status(400));"
+          ] } } ],
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+            "body": { "mode": "raw", "raw": "{}" },
+            "url": "{{baseUrl}}/api/notifications"
+          }
+        },
+        {
+          "name": "GET /api/notifications",
+          "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200 OK', () => pm.response.to.have.status(200));"
+          ] } } ],
+          "request": { "method": "GET", "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ], "url": "{{baseUrl}}/api/notifications" }
+        },
+        {
+          "name": "GET /api/notifications/unread/count",
+          "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200 OK', () => pm.response.to.have.status(200));",
+            "pm.test('has count', () => pm.expect(pm.response.json()).to.have.property('count'));"
+          ] } } ],
+          "request": { "method": "GET", "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ], "url": "{{baseUrl}}/api/notifications/unread/count" }
+        },
+        {
+          "name": "PUT /api/notifications/:id/read -> 200",
+          "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200 OK', () => pm.response.to.have.status(200));"
+          ] } } ],
+          "request": { "method": "PUT", "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ], "url": "{{baseUrl}}/api/notifications/{{notificationId}}/read" }
+        }
+      ]
+    }
+  ]
+}

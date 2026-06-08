@@ -4,6 +4,14 @@
 // data-integrity observer (replaces the old recomputeAggregates() helper).
 
 const Observer = require('./Observer');
+const { ReviewEvents } = require('../ReviewSubject');
+
+// Only events that can change the rating set trigger a recompute.
+const RATING_AFFECTING = new Set([
+  ReviewEvents.CREATED,
+  ReviewEvents.UPDATED,
+  ReviewEvents.DELETED,
+]);
 
 class RatingRecalculationObserver extends Observer {
   #reviewRepo;
@@ -16,7 +24,8 @@ class RatingRecalculationObserver extends Observer {
   }
 
   async update(event) {
-    const restaurantId = event && event.restaurantId;
+    if (!event || !RATING_AFFECTING.has(event.type)) return;
+    const restaurantId = event.restaurantId;
     if (!restaurantId) return;
     const agg = await this.#reviewRepo.aggregateRatingFor(restaurantId);
     await this.#restaurantRepo.updateById(restaurantId, {

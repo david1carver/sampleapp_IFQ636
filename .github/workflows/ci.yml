@@ -7,6 +7,7 @@ on:
     branches: [main]
 
 jobs:
+  # ── Job 1: build + unit test (runs on every push and PR) ─────────────────
   test:
     name: Run unit tests
     runs-on: ubuntu-latest
@@ -17,29 +18,77 @@ jobs:
           node-version: '20'
           cache: 'npm'
           cache-dependency-path: backend/package-lock.json
-      - working-directory: backend
+      - name: Install backend deps
+        working-directory: backend
         run: npm ci
-      - working-directory: backend
+      - name: Run backend unit tests (mocha + chai + sinon)
+        working-directory: backend
         run: npm test
 
+  # ── Job 2: deploy frontend + backend to EC2 (only on push to main) ───────
   deploy:
-    name: Deploy to EC2
+    name: Deploy to EC2 (nginx + pm2)
     needs: test
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     environment:
       name: production
     steps:
-      - uses: appleboy/ssh-action@v1.0.3
+      - uses: actions/checkout@v4
+
+      # Build the React frontend in the runner (t2.micro lacks RAM to build it).
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+      - name: Build frontend
+        working-directory: frontend
+        env:
+          # Same-origin: nginx proxies /api to the backend, so a relative base works.
+          REACT_APP_API_URL: ${{ secrets.PUBLIC_API_URL }}
+          CI: 'false'
+        run: |
+          npm ci
+          npm run build
+
+      # Ship the built static files to the EC2 web root.
+      - name: Copy frontend build to EC2
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          port: 22
+          source: "frontend/build/*"
+          target: "/home/${{ secrets.EC2_USER }}/deploy_frontend"
+          strip_components: 2
+
+      # Pull backend code, install prod deps, publish frontend, (re)start services.
+      - name: Deploy backend + publish frontend on EC2
+        uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
           port: 22
           script: |
+            set -e
+            # --- backend ---
             cd ~/sampleapp_IFQ636
             git pull origin main
             cd backend
             npm ci --omit=dev
-            pm2 restart mesa-backend
+            pm2 describe mesa-backend > /dev/null 2>&1 \
+              && pm2 restart mesa-backend \
+              || pm2 start server.js --name mesa-backend
             pm2 save
+            # --- frontend ---
+            sudo mkdir -p /var/www/restaurant-review
+            sudo rm -rf /var/www/restaurant-review/*
+            sudo cp -r ~/deploy_frontend/* /var/www/restaurant-review/
+            rm -rf ~/deploy_frontend
+            sudo systemctl reload nginx
+            # --- smoke check ---
+            sleep 2
+            curl -fsS http://localhost:5001/api/health

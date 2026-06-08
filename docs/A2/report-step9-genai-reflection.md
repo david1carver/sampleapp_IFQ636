@@ -5,11 +5,12 @@
 **Tool(s) used.** Claude (Anthropic), used as a coding assistant and writing/gap-analysis aid during the extension of the project for Assignment 2.
 
 **Tasks the tool was used for.**
+- **Verification / consistency checking** — confirming nothing was mixed up across the project: that the report claims matched the actual code, that the test counts and endpoint tables were consistent, and that each design pattern in the report corresponded to real code.
+- **Explaining errors and how to fix them** — Claude explained the errors encountered during setup and testing and the fixes: the MongoDB Atlas connection (database user, password, IP allow-list), environment configuration (`.env` / `MONGO_URI`), the nested project folder on extraction, running the unit tests, API testing with Thunder Client/Postman (200/201/401, Bearer token), and Git (remote URL, creating and pushing the new repository).
 - Re-architecting the backend into a layered, object-oriented design and implementing eight design patterns (Singleton, Factory Method, Builder, Repository, Decorator, Facade, Strategy, Observer).
 - Scaffolding the new in-app Notifications subsystem (model, repository, factory, observer, service, controller, routes, and the frontend bell).
 - Writing and expanding the Mocha/Chai/Sinon unit-test suite and the Test Case matrix.
 - Drafting the Postman collection, the SRS, the design-pattern/OOP report section, and the CI/CD runbook.
-- Reviewing code against the report claims and the rubric (gap analysis).
 
 **Description of prompts used (representative, paraphrased).**
 - "Refactor this Express/Mongoose backend to use Repository, Service/Facade, Strategy, Observer, Factory, Builder, Singleton and Decorator without breaking the existing endpoints or sinon unit tests."

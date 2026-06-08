@@ -20,7 +20,7 @@
 
 **Which parts were influenced or generated.** The pattern/service/repository/observer code, the notifications subsystem, the unit tests, and the documentation drafts (SRS, Postman, report §3, CI/CD runbook) were drafted with assistance.
 
-**Verification and adaptation.** Every change was verified against the running implementation: the full unit-test suite (44 tests) was executed and kept green; the React frontend was compiled (`react-scripts build`) to confirm the new component compiles; the app's full module graph was loaded to catch require errors; and the Postman JSON was validated. Architectural choices (which patterns, where) were reviewed for genuine fit rather than accepted blindly, and any code that did not match the report's description was corrected.
+**Verification and adaptation.** Every change was verified against the running implementation: the full unit-test suite (49 tests) was executed and kept green; the React frontend was compiled (`react-scripts build`) to confirm the new component compiles; the app's full module graph was loaded to catch require errors; and the Postman JSON was validated. Architectural choices (which patterns, where) were reviewed for genuine fit rather than accepted blindly, and any code that did not match the report's description was corrected.
 
 > **Team note:** the new GitHub repository, the per-member commit history, the
 > two resolved merge conflicts, the live Postman/EC2 screenshots, the video, and

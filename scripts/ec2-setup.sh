@@ -25,21 +25,29 @@ echo ">> Installing backend dependencies"
 cd ~/sampleapp_IFQ636/backend
 npm ci --omit=dev
 
-echo ">> Starting backend under pm2"
+echo ">> Starting backend under pm2 (mesa-backend on :5001)"
 pm2 describe mesa-backend > /dev/null 2>&1 \
   && pm2 restart mesa-backend \
   || pm2 start server.js --name mesa-backend
+
+echo ">> Preparing frontend web root + serving it under pm2 (mesa-frontend on :3000)"
+sudo mkdir -p /var/www/restaurant-review
+# Placeholder until the first CI/CD deploy copies the real React build in.
+[ -f /var/www/restaurant-review/index.html ] || echo '<h1>Restaurant Review Platform</h1>' | sudo tee /var/www/restaurant-review/index.html > /dev/null
+sudo chown -R "$USER":"$USER" /var/www/restaurant-review
+pm2 describe mesa-frontend > /dev/null 2>&1 \
+  && pm2 restart mesa-frontend \
+  || pm2 serve /var/www/restaurant-review 3000 --spa --name mesa-frontend
 pm2 save
 # Configure pm2 to start on boot (prints a command — run it as instructed).
 pm2 startup systemd -u "$USER" --hp "$HOME" || true
 
-echo ">> Configuring nginx"
-sudo mkdir -p /var/www/restaurant-review
+echo ">> Configuring nginx (proxies / -> :3000 frontend, /api -> :5001 backend)"
 sudo cp ~/sampleapp_IFQ636/scripts/nginx/restaurant-review.conf /etc/nginx/sites-available/restaurant-review
 sudo ln -sf /etc/nginx/sites-available/restaurant-review /etc/nginx/sites-enabled/restaurant-review
 sudo rm -f /etc/nginx/sites-enabled/default
 sudo nginx -t
 sudo systemctl reload nginx
 
-echo ">> Done. Backend on :5001 (pm2), nginx serving / and proxying /api."
-echo ">> Open security group inbound ports 22, 80 (and 5001 if testing directly)."
+echo ">> Done. pm2 status should show mesa-backend AND mesa-frontend online."
+echo ">> Open security group inbound ports 22 and 80."

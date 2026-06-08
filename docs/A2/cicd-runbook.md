@@ -8,11 +8,11 @@ a managed host instead of EC2.
 ## 7.1 Pipeline overview
 Workflow: `.github/workflows/ci.yml`
 
-- **Job `test`** (every push & PR): Node 20 → `npm ci` → `npm test` (44 unit tests). Deployment is blocked unless tests pass (`needs: test`).
+- **Job `test`** (every push & PR): Node 20 → `npm ci` → `npm test` (49 unit tests). Deployment is blocked unless tests pass (`needs: test`).
 - **Job `deploy`** (push to `main` only):
   1. Build the React app **in the GitHub runner** (the t2.micro lacks RAM to build React reliably).
   2. `scp` the `frontend/build` artifact to EC2.
-  3. `ssh` to EC2: `git pull`, `npm ci --omit=dev`, (re)start backend with **pm2**, publish the frontend into `/var/www/restaurant-review`, reload **nginx**, and run a `/api/health` smoke check.
+  3. `ssh` to EC2: `git pull`, `npm ci --omit=dev`, (re)start the backend with **pm2** (`mesa-backend` on :5001), publish the frontend into `/var/www/restaurant-review` and serve it with **pm2** (`mesa-frontend` on :3000, SPA mode), reload **nginx**, and run `/api/health` + `/` smoke checks. Both processes appear in `pm2 status`, satisfying the HD requirement that pm2 confirms backend *and* frontend running online.
 
 ## 7.2 One-time EC2 setup
 1. Launch Ubuntu 22.04 t2.micro; security group inbound: **22, 80** (and 5001 for direct API checks).
@@ -37,9 +37,9 @@ Settings → Secrets and variables → Actions:
 | `PUBLIC_API_URL` | (optional) public API base; blank works since nginx proxies `/api` same-origin |
 
 ## 7.4 Verifying a successful run
-- GitHub → **Actions**: `test` job green, then `deploy` job green (screenshot 7.x).
-- On EC2: `pm2 status` shows `mesa-backend` **online** with uptime/restarts (screenshot 7.x).
-- Browser: `http://<EC2_PUBLIC_IP>/` loads the React app; `http://<EC2_PUBLIC_IP>/api/health` returns `{"status":"OK"}` (screenshot 7.x).
+- GitHub → **Actions**: `test` job green, then `deploy` job green (screenshot 7.3).
+- On EC2: `pm2 status` shows **both** `mesa-backend` and `mesa-frontend` **online** with uptime/restarts (screenshot 7.2).
+- Browser: `http://<EC2_PUBLIC_IP>/` loads the React app; `http://<EC2_PUBLIC_IP>/api/health` returns `{"status":"OK"}` (screenshot 7.4).
 
 ## 7.5 Known constraint (declare in the report)
 The shared student AWS account (`AWSReservedSSO_OES-LT5-Student`) restricts some

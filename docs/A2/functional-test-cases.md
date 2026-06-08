@@ -3,12 +3,22 @@
 **Project:** Restaurant Review Platform (extended for IFQ636 Assignment 2)
 **Test framework:** Mocha + Chai + Sinon (pure unit tests; Mongoose statics stubbed, no DB)
 **Command:** `cd backend && npm test`
-**Result at time of writing:** **44 passing**
+**Result at time of writing:** **49 passing**
 
 > How to read this table: each row is one automated unit test. "Actual Output"
 > records the observed result of the latest run; "Status" is PASS when Actual
 > matches Expected. Capture the terminal `npm test` output as the pass/fail
 > screenshot evidence required by the rubric (one screenshot covers all rows).
+
+## 5.0 Authentication module
+
+| Test Case ID | Function / Endpoint | Input | Expected Output | Actual Output | Status |
+|---|---|---|---|---|---|
+| TC-A-01 | `POST /api/auth/register` | new email | 201; user + JWT token | matches | PASS |
+| TC-A-02 | `POST /api/auth/register` | duplicate email | 400; `{message}` | matches | PASS |
+| TC-A-03 | `POST /api/auth/login` | valid credentials | 200; user + JWT token | matches | PASS |
+| TC-A-04 | `POST /api/auth/login` | wrong password | 401; `{message}` | matches | PASS |
+| TC-A-05 | `POST /api/auth/login` | unknown user | 401; `{message}` | matches | PASS |
 
 ## 5.1 Restaurant module (Create / Read / Update / Delete)
 
@@ -74,4 +84,4 @@
 | TC-P-15 | Observer — abstract not instantiable | throws | matches | PASS |
 | TC-P-16 | Typed errors — NotFound is AppError(404) | statusCode 404 | matches | PASS |
 
-**Totals:** 8 (Restaurant) + 13 (Review) + 7 (Notification) + 16 (Patterns) = **44 unit tests, 44 passing.**
+**Totals:** 5 (Auth) + 8 (Restaurant) + 13 (Review) + 7 (Notification) + 16 (Patterns) = **49 unit tests, 49 passing.**

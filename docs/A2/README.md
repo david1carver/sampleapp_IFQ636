@@ -16,7 +16,7 @@ Platform** (extended from Assignment 1). The application code lives in
 |---|---|
 | Step 2 — SRS (2.1–2.11) | [`SRS.md`](./SRS.md) |
 | Step 3 — Design patterns & OOP (3.1 matrix, 3.2 OOP) | [`report-section-3.md`](./report-section-3.md) + code under `backend/` |
-| Step 5 — Functional (unit) testing + test-case table | [`functional-test-cases.md`](./functional-test-cases.md); run `cd backend && npm test` (44 passing) |
+| Step 5 — Functional (unit) testing + test-case table | [`functional-test-cases.md`](./functional-test-cases.md); run `cd backend && npm test` (49 passing) |
 | Step 6 — API testing (Postman) | [`RestaurantReview.postman_collection.json`](./RestaurantReview.postman_collection.json) |
 | Step 7 — CI/CD (EC2) | [`cicd-runbook.md`](./cicd-runbook.md); `.github/workflows/ci.yml`; `scripts/ec2-setup.sh`; `scripts/nginx/restaurant-review.conf` |
 

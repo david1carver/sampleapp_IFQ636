@@ -143,5 +143,5 @@ Layered architecture (insert the exported diagram in the report):
 | Leaked secrets | Low | High | GitHub Secrets, `.env` git-ignored, no secrets in code |
 | Rating inconsistency after concurrent edits | Medium | Medium | Server-side recompute via Observer after every mutation |
 | Team member non-contribution | Medium | Medium | Branch-per-feature, PR reviews, Part C declaration, commit-author checks |
-| Regression during refactor | Medium | High | 44 automated unit tests run in CI on every push |
+| Regression during refactor | Medium | High | 49 automated unit tests run in CI on every push |
 | Notification side-effect failure breaks core flow | Low | Medium | Observers isolated (try/catch per observer) |

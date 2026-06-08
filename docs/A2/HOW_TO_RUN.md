@@ -16,7 +16,7 @@ npm install
 ```bash
 npm test
 ```
-Expected: **44 passing** (Mocha + Chai + Sinon). This is the screenshot for report §5.1.
+Expected: **49 passing** (Mocha + Chai + Sinon). This is the screenshot for report §5.1.
 
 ## 3. Backend — seed demo data + start the API
 ```bash
@@ -74,7 +74,7 @@ backend/                 Express API
   services/              Facade services + container (composition root)
   controllers/ routes/   thin HTTP layer
   models/                Mongoose models (incl. Notification)
-  test/                  44 unit tests (mocha + chai + sinon)
+  test/                  49 unit tests (mocha + chai + sinon)
   seed.js
 frontend/                React 18 + Tailwind ("Mesa" design system)
   src/components/mesa/NotificationBell.jsx   (A2 feature)

@@ -1,53 +1,44 @@
 #!/usr/bin/env bash
 # scripts/ec2-setup.sh
-# One-time provisioning for an Ubuntu 22.04 EC2 instance (t2.micro) to host the
-# Restaurant Review Platform: Node.js 20, pm2, nginx (reverse proxy + static
-# host), and the backend process. Run as the default 'ubuntu' user.
+# Optional convenience for the SOP deployment. Installs the base toolchain on an
+# Ubuntu 22.04 EC2 instance (t3.large): nginx, Node.js 22 via nvm, pm2, yarn,
+# and writes the nginx site that proxies / -> the React SPA on :3000.
 #
+# Run as the default 'ubuntu' user from anywhere:
 #   chmod +x scripts/ec2-setup.sh && ./scripts/ec2-setup.sh
 #
-# Prerequisites: clone the repo to ~/restaurant-review-platform and create
-# backend/.env (PORT=5001, MONGO_URI=..., JWT_SECRET=...) before/after running.
+# This does NOT install the GitHub self-hosted runner or start the app — those
+# steps are interactive and are covered in docs/A2/EC2_Deploy_Guide.docx.
+# After this script: install the self-hosted runner, add the PROD environment
+# secrets (MONGO_URI/JWT_SECRET/PORT), set the live baseURL in
+# frontend/src/axiosConfig.jsx, then push to main to let CI/CD deploy.
 set -euo pipefail
 
-echo ">> Updating apt and installing base packages"
+echo ">> Updating apt and installing nginx + curl + git"
 sudo apt-get update -y
 sudo apt-get install -y curl git nginx
 
-echo ">> Installing Node.js 20"
-curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
-sudo apt-get install -y nodejs
+echo ">> Installing nvm + Node.js 22"
+if [ ! -d "$HOME/.nvm" ]; then
+  curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.1/install.sh | bash
+fi
+export NVM_DIR="$HOME/.nvm"
+# shellcheck disable=SC1091
+. "$NVM_DIR/nvm.sh"
+nvm install 22
+nvm use 22
 
-echo ">> Installing pm2 globally"
-sudo npm install -g pm2
+echo ">> Installing pm2 + yarn globally"
+npm install -g pm2 yarn
 
-echo ">> Installing backend dependencies"
-cd ~/restaurant-review-platform/backend
-npm ci --omit=dev
-
-echo ">> Starting backend under pm2 (mesa-backend on :5001)"
-pm2 describe mesa-backend > /dev/null 2>&1 \
-  && pm2 restart mesa-backend \
-  || pm2 start server.js --name mesa-backend
-
-echo ">> Preparing frontend web root + serving it under pm2 (mesa-frontend on :3000)"
-sudo mkdir -p /var/www/restaurant-review
-# Placeholder until the first CI/CD deploy copies the real React build in.
-[ -f /var/www/restaurant-review/index.html ] || echo '<h1>Restaurant Review Platform</h1>' | sudo tee /var/www/restaurant-review/index.html > /dev/null
-sudo chown -R "$USER":"$USER" /var/www/restaurant-review
-pm2 describe mesa-frontend > /dev/null 2>&1 \
-  && pm2 restart mesa-frontend \
-  || pm2 serve /var/www/restaurant-review 3000 --spa --name mesa-frontend
-pm2 save
-# Configure pm2 to start on boot (prints a command — run it as instructed).
-pm2 startup systemd -u "$USER" --hp "$HOME" || true
-
-echo ">> Configuring nginx (proxies / -> :3000 frontend, /api -> :5001 backend)"
-sudo cp ~/restaurant-review-platform/scripts/nginx/restaurant-review.conf /etc/nginx/sites-available/restaurant-review
-sudo ln -sf /etc/nginx/sites-available/restaurant-review /etc/nginx/sites-enabled/restaurant-review
-sudo rm -f /etc/nginx/sites-enabled/default
+echo ">> Writing nginx site (proxies / -> :3000 React SPA)"
+REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+sudo cp "$REPO_DIR/scripts/nginx/restaurant-review.conf" /etc/nginx/sites-available/default
 sudo nginx -t
-sudo systemctl reload nginx
+sudo service nginx restart
 
-echo ">> Done. pm2 status should show mesa-backend AND mesa-frontend online."
-echo ">> Open security group inbound ports 22 and 80."
+echo ">> Base setup done."
+echo ">> node: $(node --version)  pm2: $(pm2 --version)  yarn: $(yarn --version)"
+echo ">> Next: install the GitHub self-hosted runner, add the PROD secrets,"
+echo "   set the live baseURL in frontend/src/axiosConfig.jsx, then push to main."
+echo ">> Open security group inbound ports 22, 80 and 5001."

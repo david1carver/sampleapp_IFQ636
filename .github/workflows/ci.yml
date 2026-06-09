@@ -7,92 +7,74 @@ on:
     branches: [main]
 
 jobs:
-  # ── Job 1: build + unit test (runs on every push and PR) ─────────────────
+  # ── CI: build + unit test (runs on every push and PR) ────────────────────
   test:
     name: Run unit tests
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: backend/package-lock.json
-      - name: Install backend deps
+      - name: Show Node version (nvm)
+        run: |
+          export NVM_DIR="$HOME/.nvm"; [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+          node --version
+      - name: Install backend dependencies
         working-directory: backend
-        run: npm ci
+        run: |
+          export NVM_DIR="$HOME/.nvm"; [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+          npm install
       - name: Run backend unit tests (mocha + chai + sinon)
         working-directory: backend
-        run: npm test
+        run: |
+          export NVM_DIR="$HOME/.nvm"; [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+          npm test
 
-  # ── Job 2: deploy frontend + backend to EC2 (only on push to main) ───────
+  # ── CD: deploy onto the EC2 box this self-hosted runner lives on ─────────
+  #     Only on push to main, and only if the tests above passed.
   deploy:
-    name: Deploy to EC2 (nginx + pm2)
+    name: Deploy to EC2 (self-hosted runner, pm2 + nginx)
     needs: test
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     environment:
-      name: production
+      name: PROD
     steps:
       - uses: actions/checkout@v4
 
-      # Build the React frontend in the runner (t2.micro lacks RAM to build it).
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
+      # Recreate backend/.env from the PROD environment secrets.
+      - name: Write backend/.env from PROD secrets
+        working-directory: backend
+        run: |
+          printf 'MONGO_URI=%s\nJWT_SECRET=%s\nPORT=%s\n' \
+            '${{ secrets.MONGO_URI }}' '${{ secrets.JWT_SECRET }}' '${{ secrets.PORT }}' > .env
+
+      # --- Backend: install deps + (re)start under pm2 as "backend" on :5001 ---
+      - name: Install backend dependencies
+        working-directory: backend
+        run: |
+          export NVM_DIR="$HOME/.nvm"; [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+          npm install
+      - name: (Re)start backend with pm2
+        working-directory: backend
+        run: |
+          export NVM_DIR="$HOME/.nvm"; [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+          pm2 delete backend >/dev/null 2>&1 || true
+          pm2 start npm --name backend -- start
+
+      # --- Frontend: yarn build + serve the build under pm2 as "Frontend" on :3000 ---
       - name: Build frontend
         working-directory: frontend
-        env:
-          # Same-origin: nginx proxies /api to the backend, so a relative base works.
-          REACT_APP_API_URL: ${{ secrets.PUBLIC_API_URL }}
-          CI: 'false'
         run: |
-          npm ci
-          npm run build
+          export NVM_DIR="$HOME/.nvm"; [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+          yarn install
+          yarn run build
+      - name: (Re)serve frontend with pm2
+        working-directory: frontend
+        run: |
+          export NVM_DIR="$HOME/.nvm"; [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+          pm2 delete Frontend >/dev/null 2>&1 || true
+          pm2 serve build/ 3000 --name Frontend --spa
 
-      # Ship the built static files to the EC2 web root.
-      - name: Copy frontend build to EC2
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          port: 22
-          source: "frontend/build/*"
-          target: "/home/${{ secrets.EC2_USER }}/deploy_frontend"
-          strip_components: 2
-
-      # Pull backend code, install prod deps, publish frontend, (re)start services.
-      - name: Deploy backend + publish frontend on EC2
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          port: 22
-          script: |
-            set -e
-            # --- backend (pm2: mesa-backend) ---
-            cd ~/restaurant-review-platform
-            git pull origin main
-            cd backend
-            npm ci --omit=dev
-            pm2 describe mesa-backend > /dev/null 2>&1 \
-              && pm2 restart mesa-backend \
-              || pm2 start server.js --name mesa-backend
-            # --- frontend (pm2: mesa-frontend, served on :3000) ---
-            sudo mkdir -p /var/www/restaurant-review
-            sudo rm -rf /var/www/restaurant-review/*
-            sudo cp -r ~/deploy_frontend/* /var/www/restaurant-review/
-            rm -rf ~/deploy_frontend
-            pm2 describe mesa-frontend > /dev/null 2>&1 \
-              && pm2 restart mesa-frontend \
-              || pm2 serve /var/www/restaurant-review 3000 --spa --name mesa-frontend
-            pm2 save
-            sudo systemctl reload nginx
-            # --- smoke checks (backend API + frontend through nginx) ---
-            sleep 2
-            curl -fsS http://localhost:5001/api/health
-            curl -fsS -o /dev/null -w "frontend HTTP %{http_code}\n" http://localhost/
+      - name: Persist pm2 process list
+        run: |
+          export NVM_DIR="$HOME/.nvm"; [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+          pm2 save

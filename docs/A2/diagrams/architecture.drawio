@@ -1,0 +1,93 @@
+<mxfile host="app.diagrams.net" version="24.0.0">
+  <diagram id="arch1" name="A2 Architecture">
+    <mxGraphModel dx="960" dy="720" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageWidth="1000" pageHeight="760" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <mxCell id="title" value="Restaurant Review Platform — System Architecture (A2)" style="text;html=1;align=center;fontSize=18;fontStyle=1;fontColor=#1F1A12;" vertex="1" parent="1">
+          <mxGeometry x="200" y="10" width="600" height="30" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="backend" value="Express API (backend)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FBF7EE;strokeColor=#D9CFB8;verticalAlign=top;align=left;spacingLeft=12;spacingTop=8;fontSize=12;fontStyle=1;fontColor=#6B5D49;" vertex="1" parent="1">
+          <mxGeometry x="40" y="120" width="900" height="440" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="frontend" value="&lt;b&gt;React SPA (frontend)&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px;color:#555'&gt;Browse · Detail · ReviewForm · MyReviews · Admin · NotificationBell&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFE7D6;strokeColor=#333333;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="290" y="50" width="400" height="56" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="routes" value="&lt;b&gt;Routes → Controllers (thin)&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#333333;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="70" y="160" width="260" height="48" as="geometry"/>
+        </mxCell>
+        <mxCell id="middleware" value="&lt;b&gt;Middleware&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px;color:#555'&gt;auth · adminGuard&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#333333;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="370" y="160" width="250" height="48" as="geometry"/>
+        </mxCell>
+        <mxCell id="core" value="&lt;b&gt;core: Logger / Database&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px;color:#555'&gt;typed errors (AppError)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#333333;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="660" y="160" width="250" height="48" as="geometry"/>
+        </mxCell>
+        <mxCell id="b_singleton" value="SINGLETON" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4A5D3A;strokeColor=none;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="660" y="214" width="90" height="20" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="services" value="&lt;b&gt;Services (RestaurantService · ReviewService · AuthService · NotificationService)&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#333333;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="70" y="250" width="540" height="52" as="geometry"/>
+        </mxCell>
+        <mxCell id="b_facade" value="FACADE" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4A5D3A;strokeColor=none;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="70" y="308" width="66" height="20" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="builder" value="&lt;b&gt;RestaurantQueryBuilder + SortStrategy&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px;color:#555'&gt;search filter · sort · pagination&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#333333;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="70" y="360" width="260" height="48" as="geometry"/>
+        </mxCell>
+        <mxCell id="b_builder" value="BUILDER" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4A5D3A;strokeColor=none;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="70" y="414" width="72" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="b_strategy" value="STRATEGY" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4A5D3A;strokeColor=none;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="150" y="414" width="80" height="20" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="repos" value="&lt;b&gt;Repositories ( + LoggingDecorator )&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px;color:#555'&gt;Restaurant · Review · User · Notification&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#333333;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="370" y="360" width="250" height="48" as="geometry"/>
+        </mxCell>
+        <mxCell id="b_repo" value="REPOSITORY" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4A5D3A;strokeColor=none;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="370" y="414" width="96" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="b_decorator" value="DECORATOR" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4A5D3A;strokeColor=none;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="476" y="414" width="90" height="20" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="subject" value="&lt;b&gt;ReviewSubject → observers&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px;color:#555'&gt;Rating · Notification · Audit&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#333333;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="660" y="360" width="250" height="48" as="geometry"/>
+        </mxCell>
+        <mxCell id="b_observer" value="OBSERVER" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4A5D3A;strokeColor=none;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="660" y="414" width="80" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="factory" value="&lt;b&gt;NotificationFactory&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#333333;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="660" y="444" width="250" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="b_factory" value="FACTORY METHOD" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4A5D3A;strokeColor=none;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="780" y="488" width="130" height="20" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="mongo" value="&lt;b&gt;MongoDB Atlas (Mongoose)&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px;color:#555'&gt;users · restaurants · reviews · notifications&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFE7D6;strokeColor=#333333;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="310" y="500" width="360" height="46" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="cicd" value="&lt;b&gt;CI/CD — GitHub Actions (self-hosted runner)&lt;/b&gt;&lt;br&gt;&lt;font style='font-size:10px;color:#555'&gt;Self-hosted runner on the EC2 instance (Node 22): install deps + yarn build + 49 unit tests on push to main → pm2 (backend :5001 + Frontend :3000) behind nginx :80&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FBF7EE;strokeColor=#333333;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="590" width="900" height="70" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="e1" style="endArrow=classic;html=1;strokeColor=#777777;fontColor=#555;" edge="1" parent="1" source="frontend" target="routes">
+          <mxGeometry relative="1" as="geometry"/>
+          <mxCell id="e1lab" value="HTTPS · axios · JWT" style="text;html=1;" vertex="1" connectable="0" parent="e1"><mxGeometry x="-0.2" relative="1" as="geometry"/></mxCell>
+        </mxCell>
+        <mxCell id="e2" style="endArrow=classic;html=1;strokeColor=#777777;" edge="1" parent="1" source="routes" target="services"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e3" style="endArrow=classic;html=1;strokeColor=#777777;" edge="1" parent="1" source="services" target="builder"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e4" style="endArrow=classic;html=1;strokeColor=#777777;" edge="1" parent="1" source="services" target="repos"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e5" style="endArrow=classic;html=1;strokeColor=#777777;" edge="1" parent="1" source="services" target="subject"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e6" style="endArrow=classic;html=1;strokeColor=#777777;" edge="1" parent="1" source="repos" target="mongo"><mxGeometry relative="1" as="geometry"/></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

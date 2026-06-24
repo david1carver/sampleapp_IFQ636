@@ -2,7 +2,7 @@
 
 A full-stack restaurant review platform built for **IFQ636 Software Lifecycle Management** at QUT. Diners discover restaurants and post trustworthy star-rated reviews, owners respond, and administrators curate the catalogue and moderate content.
 
-**Assignment 2** extends the Assignment 1 project by re-architecting the backend around object-oriented design and **eight design patterns**, adding a new in-app **Notifications** subsystem, expanding **unit testing**, and automating build/test/deployment through a **CI/CD pipeline** to AWS EC2.
+**Assignment 2** extends the Assignment 1 project by re-architecting the backend around object-oriented design and **eight design patterns**, adding a new in-app **Notifications** subsystem, expanding **unit testing** to 49 tests, and automating build/test/deployment through a **CI/CD pipeline** to AWS EC2.
 
 - **Live deployment:** http://3.27.208.40/  (EC2, nginx + pm2; public IPv4 — may change if the instance is stopped/started)
 - **CI/CD:** GitHub Actions **self-hosted runner** on the EC2 instance — every push to `main` runs the unit tests, builds the frontend, writes the production `.env`, and restarts the app under pm2.
@@ -26,6 +26,14 @@ A full-stack restaurant review platform built for **IFQ636 Software Lifecycle Ma
 | Observer | `events/ReviewSubject.js` + `observers/` (Rating, Notification, Audit) |
 
 OOP principles: encapsulation (`#private` fields), inheritance (Strategy/Observer subclasses), abstraction (abstract bases that throw on direct instantiation), and polymorphism (uniform `update()` / `toMongoSort()`).
+
+## Technology choices
+- **MongoDB Atlas (Sydney)** for managed Mongo with low local latency.
+- **Mongoose 6** for schema validation, with restaurant `averageRating` and `reviewCount` recomputed after every review create / update / delete (Observer pattern).
+- **bcrypt** via a Mongoose pre-save hook on the User schema.
+- **React Router 6** with a declarative `<ProtectedRoute>` wrapper for auth + role gating.
+- **Tailwind CSS 3** with HSL CSS custom properties so the Mesa palette is theme-able from a single source.
+- **Mocha + Chai + Sinon** for fast unit tests of controller / service / repository / pattern behaviour (no DB).
 
 ## Local setup
 ### 1. Backend
@@ -74,17 +82,19 @@ npm test
 ## API summary
 | Method | Path | Auth | Description |
 |---|---|---|---|
-| POST | `/api/auth/register` | Public | Register, returns JWT |
-| POST | `/api/auth/login` | Public | Login, returns JWT |
+| POST | `/api/auth/register` | Public | Create account, returns JWT |
+| POST | `/api/auth/login` | Public | Authenticate, returns JWT |
 | GET | `/api/restaurants` | Public | List + filter + paginate |
 | GET | `/api/restaurants/:slug` | Public | Get one by slug |
 | POST | `/api/restaurants` | Admin | Create restaurant |
 | PATCH | `/api/restaurants/:id` | Admin | Update restaurant |
-| DELETE | `/api/restaurants/:id` | Admin | Delete + cascade reviews |
+| DELETE | `/api/restaurants/:id` | Admin | Delete restaurant + cascade reviews |
+| GET | `/api/restaurants/:id/reviews` | Public | List reviews for one restaurant |
 | POST | `/api/restaurants/:id/reviews` | Diner | Create review (one per diner) |
+| GET | `/api/reviews` | Admin | List all reviews (moderation) |
 | GET | `/api/reviews/me` | Diner | List own reviews |
 | PATCH/DELETE | `/api/reviews/:id` | Author/Admin | Update / delete review |
-| POST | `/api/reviews/:id/response` | Admin | Owner response |
+| POST | `/api/reviews/:id/response` | Admin | Post owner response |
 | GET | `/api/notifications` | Auth | List notifications |
 | PUT | `/api/notifications/:id/read` | Auth | Mark read |
 | GET | `/api/health` | Public | Health check |
@@ -94,5 +104,17 @@ A Postman/Thunder Client collection is exported at `docs/A2/RestaurantReview.pos
 ## CI/CD pipeline
 `.github/workflows/ci.yml` (`name: Backend CI`) runs on a **self-hosted runner** installed on the EC2 instance, on every push to `main`: install deps → build the React frontend (yarn) → run the unit tests → write the production `.env` from a secret → restart backend + frontend under pm2. nginx serves the frontend on port 80 and proxies `/api` to the backend on port 5001.
 
+## Branching strategy
+Every feature lives on its own `feature/*` branch and lands on `main` via a pull request. Feature branches are preserved on the remote post-merge for inspection. The repository also demonstrates merge-conflict resolution:
+- `feature/contrib-a` / `feature/contrib-b` — an add/add conflict on `CONTRIBUTORS.md`, resolved by keeping both lines.
+- `feature/log-a` / `feature/log-b` — a same-line conflict on `docs/A2/meeting-log.md`, resolved by combining both entries.
+- `feature/readme-setup-note` — documentation change merged via pull request #1.
+
+## Related artefacts (in `docs/A2/`)
+- **Assignment 2 report** — full SRS, design-pattern write-up, testing, API and CI/CD evidence.
+- **Low-fidelity wireframes** — eight screens covering the diner and admin journeys (`docs/A2/wireframes/`).
+- **System architecture diagram** — `docs/A2/diagrams/architecture.png`.
+- **Postman/Thunder Client collection** — `docs/A2/RestaurantReview.postman_collection.json`.
+
 ## Author & GitHub workflow
-Completed solo by **David (Anrio) Carver** (n11473215). An allocated teammate withdrew from the unit before submission, so all work here is the author's own. The project uses a feature-branch workflow — dedicated `feature/*` branches, pull requests, and resolved merge conflicts — demonstrating command of the GitHub collaboration tooling. See the Assignment 2 report (`docs/A2/`) for full evidence.
+Completed solo by **David (Anrio) Carver** (QUT student ID n11473215) — IFQ636 Software Lifecycle Management, Semester 1 2026. An allocated teammate withdrew from the unit before submission, so all work here is the author's own. The feature-branch workflow above (branches, pull requests, and resolved merge conflicts) demonstrates command of the GitHub collaboration tooling. See the Assignment 2 report (`docs/A2/`) for full evidence.

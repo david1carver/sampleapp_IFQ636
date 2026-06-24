@@ -7,6 +7,7 @@ const chai = require('chai');
 const sinon = require('sinon');
 const Review = require('../models/Review');
 const Restaurant = require('../models/Restaurant');
+const Notification = require('../models/Notification');
 const { createReview } = require('../controllers/reviewController');
 
 const expect = chai.expect;
@@ -33,6 +34,8 @@ describe('reviewController.createReview (unit tests, sinon)', () => {
     // Stub both so the test doesn't try to hit the real database.
     sinon.stub(Review, 'aggregate').resolves([{ _id: '507f191e810c19729de860ea', average: 5, count: 1 }]);
     sinon.stub(Restaurant, 'findByIdAndUpdate').resolves(fakeRestaurant);
+    // The NotificationObserver now fires on review creation; stub the persist call.
+    sinon.stub(Notification, 'create').resolves({ _id: 'n1' });
 
     const req = {
       params: { id: '507f191e810c19729de860ea' },

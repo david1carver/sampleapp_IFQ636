@@ -1,17 +1,17 @@
 {
-  "name": "task-manager",
-  "version": "1.0.0",
-  "description": "Complete MERN Task Manager Application",
+  "name": "restaurant-review-platform",
+  "version": "2.0.0",
+  "description": "Restaurant Review Platform — IFQ636 Assignment 2 (full-stack, design patterns, CI/CD)",
   "scripts": {
     "install-all": "npm install && npm install --prefix backend && npm install --prefix frontend",
     "start": "concurrently \"npm run prod --prefix backend\" \"npm start --prefix frontend\"",
-    "dev": "concurrently \"npm run dev --prefix backend\" \"npm start --prefix frontend\""
+    "dev": "concurrently -n backend,frontend -c blue,green \"npm run dev --prefix backend\" \"npm start --prefix frontend\"",
+    "test": "npm test --prefix backend",
+    "seed": "npm run seed --prefix backend"
   },
   "devDependencies": {
-    "chai": "^5.1.2",
-    "concurrently": "^7.0.0",
-    "mocha": "^11.0.1"
+    "concurrently": "^7.0.0"
   },
-  "author": "Task Manager Team",
+  "author": "IFQ636 Team",
   "license": "ISC"
 }

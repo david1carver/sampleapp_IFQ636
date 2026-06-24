@@ -1,17 +1,13 @@
 // config/db.js
-const mongoose = require("mongoose");
+// Thin backward-compatible wrapper that delegates to the Database Singleton
+// (see core/Database.js). server.js continues to `require('./config/db')` and
+// call connectDB(), but the actual connection is now managed by the singleton,
+// guaranteeing exactly one Mongoose connection for the whole process.
 
-// Set strictQuery explicitly to suppress the warning
-//mongoose.set('strictQuery', true);
+const database = require('../core/Database');
 
 const connectDB = async () => {
-  try {
-    await mongoose.connect(process.env.MONGO_URI);  // Remove deprecated options
-    console.log("MongoDB connected successfully");
-  } catch (error) {
-    console.error("MongoDB connection error:", error.message);
-    process.exit(1);
-  }
+  await database.connect(process.env.MONGO_URI);
 };
 
 module.exports = connectDB;

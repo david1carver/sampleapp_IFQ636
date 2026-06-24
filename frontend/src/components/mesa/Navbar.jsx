@@ -9,6 +9,7 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import Logo from './Logo';
+import NotificationBell from './NotificationBell';
 
 function cn(...c) {
   return c.filter(Boolean).join(' ');
@@ -72,6 +73,7 @@ export default function Navbar({ activeLink, showOwnerBadge = false }) {
 
           {isAuthenticated ? (
             <div className="flex items-center gap-3 pl-4 border-l border-border">
+              <NotificationBell />
               <span className="text-sm text-muted-foreground">
                 Hi, <span className="font-semibold text-foreground">{user.name}</span>
               </span>

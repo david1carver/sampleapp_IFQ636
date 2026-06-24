@@ -94,5 +94,5 @@ A Postman/Thunder Client collection is exported at `docs/A2/RestaurantReview.pos
 ## CI/CD pipeline
 `.github/workflows/ci.yml` (`name: Backend CI`) runs on a **self-hosted runner** installed on the EC2 instance, on every push to `main`: install deps → build the React frontend (yarn) → run the unit tests → write the production `.env` from a secret → restart backend + frontend under pm2. nginx serves the frontend on port 80 and proxies `/api` to the backend on port 5001.
 
-## Team & collaboration
-Built by **David (Anrio) Carver** (n11473215) and **Cameron Bruce** (N11315423) using a feature-branch workflow: dedicated `feature/*` branches, pull requests with code review, and resolved merge conflicts. See the Assignment 2 report (`docs/A2/`) for full evidence.
+## Author & GitHub workflow
+Completed solo by **David (Anrio) Carver** (n11473215). An allocated teammate withdrew from the unit before submission, so all work here is the author's own. The project uses a feature-branch workflow — dedicated `feature/*` branches, pull requests, and resolved merge conflicts — demonstrating command of the GitHub collaboration tooling. See the Assignment 2 report (`docs/A2/`) for full evidence.

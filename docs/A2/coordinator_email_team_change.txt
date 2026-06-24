@@ -1,0 +1,40 @@
+To: [IFQ636 Unit Coordinator — e.g. ifq636@qut.edu.au]
+Cc: [tutor, if known]
+Subject: IFQ636 Assignment 2 — team change (teammate withdrawing, completing solo)
+
+Dear [Unit Coordinator name],
+
+I am writing to notify you of a change to my Assignment 2 team before the
+submission deadline (3 July 2026).
+
+My allocated teammate, Cameron Bruce (N11315423), advised me on 24 June 2026
+that he is in the process of dropping IFQ636 entirely and will not be able to
+contribute to the final submission. (An earlier-allocated member, Juha Anttila,
+had also advised that his placement in the group was an administrative error and
+that he was completing the unit individually.)
+
+As a result, I will be completing and submitting Assignment 2 on my own. I have
+already done the full body of work for the project — the object-oriented backend
+refactor and eight design patterns, the new Notifications subsystem, 49 passing
+unit tests, the Postman/API testing, and the live CI/CD deployment on AWS EC2
+via a GitHub Actions self-hosted runner — so the assignment is complete and on
+track for the deadline.
+
+I wanted to raise this proactively so that it is on record, and to ask:
+
+  1. Is there anything I need to do administratively to have the team formally
+     marked as a solo submission?
+  2. For the "Team collaboration via GitHub" criterion, given I am now solo,
+     would you like me to evidence the GitHub workflow (feature branches, pull
+     requests, and merge-conflict resolution) as an individual demonstration of
+     that workflow, or is there an alternative you would prefer?
+
+I have documented the team change factually in both the report (Section 4) and
+the Declaration of Contribution. Happy to provide anything further you need.
+
+Thank you for your guidance.
+
+Kind regards,
+David (Anrio) Carver
+Student ID 11473215
+IFQ636 — Assignment 2

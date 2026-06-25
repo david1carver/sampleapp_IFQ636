@@ -4,12 +4,25 @@
 
 const Restaurant = require('../models/Restaurant');
 const Review = require('../models/Review');
+const { getSortStrategy } = require('../patterns/strategy/SortStrategies');
+const UserFactory = require('../patterns/factory/UserFactory');
+const {
+  RestaurantServiceProxy,
+  AccessDeniedError,
+} = require('../patterns/proxy/RestaurantServiceProxy');
 
-// GET /api/restaurants?cuisine=&location=&minRating=&q=&page=&limit=
-// Public. Supports filters and search.
+// Builds a protection Proxy around the restaurant service for the current
+// request's user. The Proxy enforces admin-only access on write operations.
+function serviceFor(req) {
+  const user = UserFactory.fromDocument(req.user);
+  return new RestaurantServiceProxy(user);
+}
+
+// GET /api/restaurants?cuisine=&location=&minRating=&q=&sort=&page=&limit=
+// Public. Supports filters, search, and pluggable sort strategies.
 exports.listRestaurants = async (req, res) => {
   try {
-    const { cuisine, location, minRating, q } = req.query;
+    const { cuisine, location, minRating, q, sort } = req.query;
     const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
     const limit = Math.min(parseInt(req.query.limit, 10) || 12, 50);
     const skip = (page - 1) * limit;
@@ -23,8 +36,11 @@ exports.listRestaurants = async (req, res) => {
       filter.$or = [{ name: rx }, { description: rx }, { cuisine: rx }];
     }
 
+    // STRATEGY pattern: pick the ordering at runtime from ?sort= (default rating).
+    const sortSpec = getSortStrategy(sort).apply();
+
     const [items, total] = await Promise.all([
-      Restaurant.find(filter).sort({ averageRating: -1, reviewCount: -1 }).skip(skip).limit(limit),
+      Restaurant.find(filter).sort(sortSpec).skip(skip).limit(limit),
       Restaurant.countDocuments(filter),
     ]);
 
@@ -60,7 +76,8 @@ exports.createRestaurant = async (req, res) => {
     if (!name || !cuisine || !location) {
       return res.status(400).json({ message: 'name, cuisine, and location are required' });
     }
-    const restaurant = await Restaurant.create({
+    // PROXY pattern: write goes through the access-controlled service.
+    const restaurant = await serviceFor(req).create({
       name,
       slug,
       cuisine,
@@ -70,6 +87,9 @@ exports.createRestaurant = async (req, res) => {
     });
     res.status(201).json(restaurant);
   } catch (err) {
+    if (err instanceof AccessDeniedError) {
+      return res.status(403).json({ message: err.message });
+    }
     if (err.code === 11000) {
       return res.status(409).json({ message: 'Slug already exists', error: err.message });
     }
@@ -86,13 +106,14 @@ exports.updateRestaurant = async (req, res) => {
     for (const key of updatable) {
       if (req.body[key] !== undefined) patch[key] = req.body[key];
     }
-    const restaurant = await Restaurant.findByIdAndUpdate(req.params.id, patch, {
-      new: true,
-      runValidators: true,
-    });
+    // PROXY pattern: write goes through the access-controlled service.
+    const restaurant = await serviceFor(req).update(req.params.id, patch);
     if (!restaurant) return res.status(404).json({ message: 'Restaurant not found' });
     res.json(restaurant);
   } catch (err) {
+    if (err instanceof AccessDeniedError) {
+      return res.status(403).json({ message: err.message });
+    }
     res.status(500).json({ message: 'Failed to update restaurant', error: err.message });
   }
 };
@@ -101,11 +122,15 @@ exports.updateRestaurant = async (req, res) => {
 // Admin only. Cascades — removes all reviews for this restaurant.
 exports.deleteRestaurant = async (req, res) => {
   try {
-    const restaurant = await Restaurant.findByIdAndDelete(req.params.id);
+    // PROXY pattern: write goes through the access-controlled service.
+    const restaurant = await serviceFor(req).delete(req.params.id);
     if (!restaurant) return res.status(404).json({ message: 'Restaurant not found' });
     await Review.deleteMany({ restaurantId: restaurant._id });
     res.json({ message: 'Restaurant deleted', id: restaurant._id });
   } catch (err) {
+    if (err instanceof AccessDeniedError) {
+      return res.status(403).json({ message: err.message });
+    }
     res.status(500).json({ message: 'Failed to delete restaurant', error: err.message });
   }
 };

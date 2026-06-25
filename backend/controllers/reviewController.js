@@ -1,30 +1,22 @@
 // backend/controllers/reviewController.js
 // Implements SysML R011–R015 (review CRUD + ownership), R017–R018 (owner response),
 // R024 (admin removal of inappropriate reviews).
+//
+// Design patterns wired in here:
+//   * Chain of Responsibility — input validation pipeline for createReview
+//   * Observer                — review create/update/delete publish to a subject
+//                               whose observers recompute aggregates + audit
+//   * Facade                  — admin moderation (list all, respond) goes
+//                               through ModerationFacade
 
-const mongoose = require('mongoose');
 const Review = require('../models/Review');
 const Restaurant = require('../models/Restaurant');
+const { reviewSubject } = require('../patterns/observer/ReviewSubject');
+const { buildReviewValidationChain } = require('../patterns/chain/ReviewValidation');
+const ModerationFacade = require('../patterns/facade/ModerationFacade');
 
-// Recompute the restaurant's averageRating + reviewCount from current reviews.
-// Called after any review create/update/delete.
-async function recomputeAggregates(restaurantId) {
-  const result = await Review.aggregate([
-    { $match: { restaurantId: new mongoose.Types.ObjectId(restaurantId) } },
-    {
-      $group: {
-        _id: '$restaurantId',
-        average: { $avg: '$rating' },
-        count: { $sum: 1 },
-      },
-    },
-  ]);
-  const agg = result[0] || { average: 0, count: 0 };
-  await Restaurant.findByIdAndUpdate(restaurantId, {
-    averageRating: Number((agg.average || 0).toFixed(2)),
-    reviewCount: agg.count,
-  });
-}
+const reviewValidation = buildReviewValidationChain();
+const moderation = new ModerationFacade();
 
 // GET /api/restaurants/:id/reviews
 // Public.
@@ -57,8 +49,10 @@ exports.listMyReviews = async (req, res) => {
 exports.createReview = async (req, res) => {
   try {
     const { rating, text } = req.body;
-    if (!rating || !text) return res.status(400).json({ message: 'rating and text are required' });
-    if (rating < 1 || rating > 5) return res.status(400).json({ message: 'rating must be 1–5' });
+
+    // CHAIN OF RESPONSIBILITY: run the input through the validator chain.
+    const verdict = reviewValidation.handle({ rating, text });
+    if (!verdict.ok) return res.status(verdict.status).json({ message: verdict.message });
 
     const restaurant = await Restaurant.findById(req.params.id);
     if (!restaurant) return res.status(404).json({ message: 'Restaurant not found' });
@@ -69,7 +63,15 @@ exports.createReview = async (req, res) => {
       rating,
       text,
     });
-    await recomputeAggregates(restaurant._id);
+
+    // OBSERVER: notify subscribers (recompute aggregates + audit).
+    await reviewSubject.notify({
+      type: 'created',
+      restaurantId: restaurant._id,
+      reviewId: review._id,
+      actorId: req.user._id,
+    });
+
     res.status(201).json(review);
   } catch (err) {
     if (err.code === 11000) {
@@ -97,7 +99,15 @@ exports.updateReview = async (req, res) => {
     }
     if (text !== undefined) review.text = text;
     await review.save();
-    await recomputeAggregates(review.restaurantId);
+
+    // OBSERVER: notify subscribers (recompute aggregates + audit).
+    await reviewSubject.notify({
+      type: 'updated',
+      restaurantId: review.restaurantId,
+      reviewId: review._id,
+      actorId: req.user._id,
+    });
+
     res.json(review);
   } catch (err) {
     res.status(500).json({ message: 'Failed to update review', error: err.message });
@@ -119,7 +129,15 @@ exports.deleteReview = async (req, res) => {
 
     const restaurantId = review.restaurantId;
     await review.deleteOne();
-    await recomputeAggregates(restaurantId);
+
+    // OBSERVER: notify subscribers (recompute aggregates + audit).
+    await reviewSubject.notify({
+      type: 'deleted',
+      restaurantId,
+      reviewId: review._id,
+      actorId: req.user._id,
+    });
+
     res.json({ message: 'Review deleted', id: review._id });
   } catch (err) {
     res.status(500).json({ message: 'Failed to delete review', error: err.message });
@@ -130,17 +148,10 @@ exports.deleteReview = async (req, res) => {
 // Admin only (acting as restaurant owner in this assignment scope).
 exports.respondToReview = async (req, res) => {
   try {
-    const { response } = req.body;
-    if (!response || !response.trim()) {
-      return res.status(400).json({ message: 'response text is required' });
-    }
-    const review = await Review.findByIdAndUpdate(
-      req.params.id,
-      { ownerResponse: response.trim(), ownerResponseAt: new Date() },
-      { new: true }
-    );
-    if (!review) return res.status(404).json({ message: 'Review not found' });
-    res.json(review);
+    // FACADE: delegate the owner-response workflow.
+    const result = await moderation.respond(req.params.id, req.body.response);
+    if (!result.ok) return res.status(result.status).json({ message: result.message });
+    res.json(result.review);
   } catch (err) {
     res.status(500).json({ message: 'Failed to post response', error: err.message });
   }
@@ -151,27 +162,12 @@ exports.respondToReview = async (req, res) => {
 // restaurant info and author info populated for the moderation table.
 exports.listAllReviews = async (req, res) => {
   try {
-    const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
-    const limit = Math.min(parseInt(req.query.limit, 10) || 50, 100);
-    const skip = (page - 1) * limit;
-
-    const [items, total] = await Promise.all([
-      Review.find({})
-        .populate('restaurantId', 'name slug')
-        .populate('userId', 'name email')
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit),
-      Review.countDocuments({}),
-    ]);
-
-    res.json({
-      items,
-      page,
-      limit,
-      total,
-      totalPages: Math.ceil(total / limit) || 1,
+    // FACADE: delegate the moderation listing.
+    const payload = await moderation.listAllReviews({
+      page: req.query.page,
+      limit: req.query.limit,
     });
+    res.json(payload);
   } catch (err) {
     res.status(500).json({ message: 'Failed to list reviews', error: err.message });
   }

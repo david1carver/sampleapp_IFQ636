@@ -1,0 +1,643 @@
+{
+  "info": {
+    "name": "Mesa — Restaurant Review API (IFQ636 A2)",
+    "_postman_id": "b3f1c2d4-mesa-0000-0000-restaurantreview",
+    "description": "End-to-end API tests for the Mesa restaurant review platform.\n\nCovers auth (register/login/profile), restaurant CRUD, review CRUD, owner response, and admin moderation — including error paths (401/403/404/409/400).\n\nThe collection runs top-to-bottom (Newman-friendly): it registers a diner, logs in as admin + diner, captures the JWTs and created IDs into collection variables, exercises every endpoint, then cleans up by deleting the test restaurant (cascading its reviews).\n\nVariables it sets automatically: diner_token, admin_token, dinerEmail, restaurantId, restaurantSlug, reviewId.\n\nRequires a running backend (default http://localhost:5001) seeded with the admin user admin@mesa.test / admin1234 (see backend/seed.js).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5001" },
+    { "key": "adminEmail", "value": "admin@mesa.test" },
+    { "key": "adminPassword", "value": "admin1234" },
+    { "key": "dinerEmail", "value": "" },
+    { "key": "dinerPassword", "value": "diner1234" },
+    { "key": "diner_token", "value": "" },
+    { "key": "admin_token", "value": "" },
+    { "key": "restaurantId", "value": "" },
+    { "key": "restaurantSlug", "value": "" },
+    { "key": "reviewId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register Diner (POST /api/auth/register)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Generate a unique diner email so the run is repeatable.",
+                  "const email = `diner_${Date.now()}@mesa.test`;",
+                  "pm.collectionVariables.set('dinerEmail', email);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "pm.test('Status code is 201 (Created)', () => pm.response.to.have.status(201));",
+                  "pm.test('Content-Type is present', () => pm.response.to.have.header('Content-Type'));",
+                  "pm.test('Response time is under 1000ms', () => pm.expect(pm.response.responseTime).to.be.below(1000));",
+                  "pm.test('Body returns id, email and token', () => {",
+                  "  pm.expect(json).to.have.property('id');",
+                  "  pm.expect(json).to.have.property('email');",
+                  "  pm.expect(json).to.have.property('token').that.is.a('string');",
+                  "});",
+                  "if (json.token) { pm.collectionVariables.set('diner_token', json.token); console.log('Saved diner_token'); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Test Diner\",\n  \"email\": \"{{dinerEmail}}\",\n  \"password\": \"{{dinerPassword}}\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/auth/register", "host": ["{{baseUrl}}"], "path": ["api", "auth", "register"] }
+          }
+        },
+        {
+          "name": "Login Admin (POST /api/auth/login)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "pm.test('Status code is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns a JWT token', () => pm.expect(json).to.have.property('token').that.is.a('string'));",
+                  "if (json.token) { pm.collectionVariables.set('admin_token', json.token); console.log('Saved admin_token'); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api", "auth", "login"] }
+          }
+        },
+        {
+          "name": "Login wrong password → 401 (error case)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 401 (Unauthorized)', () => pm.response.to.have.status(401));",
+                  "pm.test('Returns an error message', () => pm.expect(pm.response.json()).to.have.property('message'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"definitely-wrong\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api", "auth", "login"] }
+          }
+        },
+        {
+          "name": "Get Profile (GET /api/auth/profile)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns name and email', () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j).to.have.property('name');",
+                  "  pm.expect(j).to.have.property('email');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{diner_token}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/auth/profile", "host": ["{{baseUrl}}"], "path": ["api", "auth", "profile"] }
+          }
+        },
+        {
+          "name": "Get Profile without token → 401 (error case)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 401 (Unauthorized)', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/auth/profile", "host": ["{{baseUrl}}"], "path": ["api", "auth", "profile"] }
+          }
+        },
+        {
+          "name": "Update Profile (PUT /api/auth/profile)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('University was updated', () => pm.expect(pm.response.json().university).to.eql('QUT'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{diner_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"university\": \"QUT\",\n  \"address\": \"Brisbane, QLD\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/auth/profile", "host": ["{{baseUrl}}"], "path": ["api", "auth", "profile"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Restaurants",
+      "item": [
+        {
+          "name": "Create Restaurant — admin (POST /api/restaurants)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('restaurantSlug', `test-bistro-${Date.now()}`);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "pm.test('Status code is 201 (Created)', () => pm.response.to.have.status(201));",
+                  "pm.test('Returns the created restaurant with an _id', () => pm.expect(json).to.have.property('_id'));",
+                  "pm.test('averageRating defaults to 0', () => pm.expect(json.averageRating).to.eql(0));",
+                  "if (json._id) pm.collectionVariables.set('restaurantId', json._id);",
+                  "if (json.slug) pm.collectionVariables.set('restaurantSlug', json.slug);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Test Bistro\",\n  \"slug\": \"{{restaurantSlug}}\",\n  \"cuisine\": \"Modern Australian\",\n  \"location\": \"Brisbane, QLD\",\n  \"description\": \"A test restaurant created by the Postman suite.\",\n  \"imageUrl\": \"https://example.com/bistro.jpg\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/restaurants", "host": ["{{baseUrl}}"], "path": ["api", "restaurants"] }
+          }
+        },
+        {
+          "name": "Create Restaurant without token → 401 (error case)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": ["pm.test('Status code is 401 (Unauthorized)', () => pm.response.to.have.status(401));"]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"No Auth\",\n  \"cuisine\": \"x\",\n  \"location\": \"y\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/restaurants", "host": ["{{baseUrl}}"], "path": ["api", "restaurants"] }
+          }
+        },
+        {
+          "name": "Create Restaurant as diner → 403 (error case)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": ["pm.test('Status code is 403 (Forbidden)', () => pm.response.to.have.status(403));"]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{diner_token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Diner Tried\",\n  \"cuisine\": \"x\",\n  \"location\": \"y\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/restaurants", "host": ["{{baseUrl}}"], "path": ["api", "restaurants"] }
+          }
+        },
+        {
+          "name": "List Restaurants (GET /api/restaurants)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "pm.test('Status code is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Paginated payload shape', () => {",
+                  "  pm.expect(json).to.have.property('items').that.is.an('array');",
+                  "  pm.expect(json).to.have.property('page').that.is.a('number');",
+                  "  pm.expect(json).to.have.property('total').that.is.a('number');",
+                  "  pm.expect(json).to.have.property('totalPages');",
+                  "});",
+                  "pm.test('Response time is under 1500ms', () => pm.expect(pm.response.responseTime).to.be.below(1500));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/restaurants?page=1&limit=12",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "restaurants"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "12" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "List Restaurants sort=newest (Strategy)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns items array', () => pm.expect(pm.response.json().items).to.be.an('array'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/restaurants?sort=newest",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "restaurants"],
+              "query": [{ "key": "sort", "value": "newest" }]
+            }
+          }
+        },
+        {
+          "name": "Get Restaurant by slug (GET /api/restaurants/:slug)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Slug matches the requested one', () => pm.expect(pm.response.json().slug).to.eql(pm.collectionVariables.get('restaurantSlug')));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/restaurants/{{restaurantSlug}}", "host": ["{{baseUrl}}"], "path": ["api", "restaurants", "{{restaurantSlug}}"] }
+          }
+        },
+        {
+          "name": "Get unknown slug → 404 (error case)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": ["pm.test('Status code is 404 (Not Found)', () => pm.response.to.have.status(404));"]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/restaurants/this-slug-does-not-exist", "host": ["{{baseUrl}}"], "path": ["api", "restaurants", "this-slug-does-not-exist"] }
+          }
+        },
+        {
+          "name": "Update Restaurant — admin (PATCH /api/restaurants/:id)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Description was updated', () => pm.expect(pm.response.json().description).to.include('Updated'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"description\": \"Updated by the Postman suite.\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/restaurants/{{restaurantId}}", "host": ["{{baseUrl}}"], "path": ["api", "restaurants", "{{restaurantId}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reviews",
+      "item": [
+        {
+          "name": "Create Review — diner (POST /api/restaurants/:id/reviews)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "pm.test('Status code is 201 (Created)', () => pm.response.to.have.status(201));",
+                  "pm.test('Returns review with rating 5', () => pm.expect(json.rating).to.eql(5));",
+                  "if (json._id) pm.collectionVariables.set('reviewId', json._id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{diner_token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"rating\": 5,\n  \"text\": \"Excellent food and friendly service.\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/restaurants/{{restaurantId}}/reviews", "host": ["{{baseUrl}}"], "path": ["api", "restaurants", "{{restaurantId}}", "reviews"] }
+          }
+        },
+        {
+          "name": "Create duplicate review → 409 (error case)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 409 (Conflict)', () => pm.response.to.have.status(409));",
+                  "pm.test('Message mentions already reviewed', () => pm.expect(pm.response.json().message.toLowerCase()).to.include('already'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{diner_token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"rating\": 3,\n  \"text\": \"Second review should be blocked.\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/restaurants/{{restaurantId}}/reviews", "host": ["{{baseUrl}}"], "path": ["api", "restaurants", "{{restaurantId}}", "reviews"] }
+          }
+        },
+        {
+          "name": "Create review missing fields → 400 (error case)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": ["pm.test('Status code is 400 (Bad Request)', () => pm.response.to.have.status(400));"]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{diner_token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"rating\": 4\n}" },
+            "url": { "raw": "{{baseUrl}}/api/restaurants/{{restaurantId}}/reviews", "host": ["{{baseUrl}}"], "path": ["api", "restaurants", "{{restaurantId}}", "reviews"] }
+          }
+        },
+        {
+          "name": "List reviews for restaurant (GET /api/restaurants/:id/reviews)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns an array with at least one review', () => {",
+                  "  const arr = pm.response.json();",
+                  "  pm.expect(arr).to.be.an('array');",
+                  "  pm.expect(arr.length).to.be.above(0);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/restaurants/{{restaurantId}}/reviews", "host": ["{{baseUrl}}"], "path": ["api", "restaurants", "{{restaurantId}}", "reviews"] }
+          }
+        },
+        {
+          "name": "Get my reviews — diner (GET /api/reviews/me)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns an array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{diner_token}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/reviews/me", "host": ["{{baseUrl}}"], "path": ["api", "reviews", "me"] }
+          }
+        },
+        {
+          "name": "List all reviews — admin moderation (GET /api/reviews)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "pm.test('Status code is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Paginated payload', () => {",
+                  "  pm.expect(json).to.have.property('items').that.is.an('array');",
+                  "  pm.expect(json).to.have.property('total');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/reviews", "host": ["{{baseUrl}}"], "path": ["api", "reviews"] }
+          }
+        },
+        {
+          "name": "Update review — author (PATCH /api/reviews/:id)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Rating was updated to 4', () => pm.expect(pm.response.json().rating).to.eql(4));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{diner_token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"rating\": 4,\n  \"text\": \"Edited: still very good.\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/reviews/{{reviewId}}", "host": ["{{baseUrl}}"], "path": ["api", "reviews", "{{reviewId}}"] }
+          }
+        },
+        {
+          "name": "Respond to review — admin (POST /api/reviews/:id/response)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Owner response saved', () => pm.expect(pm.response.json().ownerResponse).to.include('Thank you'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"response\": \"Thank you for the kind review!\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/reviews/{{reviewId}}/response", "host": ["{{baseUrl}}"], "path": ["api", "reviews", "{{reviewId}}", "response"] }
+          }
+        },
+        {
+          "name": "Delete review — author/admin (DELETE /api/reviews/:id)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Confirms deletion', () => pm.expect(pm.response.json().message).to.include('deleted'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{diner_token}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/reviews/{{reviewId}}", "host": ["{{baseUrl}}"], "path": ["api", "reviews", "{{reviewId}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Cleanup",
+      "item": [
+        {
+          "name": "Delete Restaurant — admin, cascades reviews (DELETE /api/restaurants/:id)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Confirms deletion', () => pm.expect(pm.response.json().message).to.include('deleted'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/restaurants/{{restaurantId}}", "host": ["{{baseUrl}}"], "path": ["api", "restaurants", "{{restaurantId}}"] }
+          }
+        }
+      ]
+    }
+  ]
+}
